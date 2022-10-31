@@ -381,7 +381,7 @@ class VideoFrameBufferMultiDepth(Module, AutoCSR):
         self.comb += self.vbl_ps.i.eq(vga_vblping)
         self.comb += self.vblping.eq(self.vbl_ps.o)
 
-class goblin(Module, AutoCSR):
+class Goblin(Module, AutoCSR):
     def __init__(self, soc=None, phy=None, timings=None, clock_domain="sys", irq_line=None, endian="big", hwcursor=True, truecolor=True):
         
         # 2 bits for color (0/r, 1/g, 2/b), 8 for @ and 8 for value
