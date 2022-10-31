@@ -323,11 +323,11 @@ class GoblinAccel(Module): # AutoCSR ?
 
 class GoblinAccelNuBus(GoblinAccel):
     def add_sources(self, platform):
-        platform.add_source("/home/dolbeau/NuBusFPGA/nubus-to-ztex-gateware/VexRiscv_GoblinAccel_NuBus.v", "verilog")
+        platform.add_source("VintageBusFPGA_Common/VexRiscv_GoblinAccel_NuBus.v", "verilog")
 
 
 class GoblinAccelSBus(GoblinAccel):
     def add_sources(self, platform):
         led0 = platform.request("SBUS_DATA_OE_LED")
         self.comb += [ led0.eq(~self.local_reset), ]
-        platform.add_source("/home/dolbeau/NuBusFPGA/nubus-to-ztex-gateware/VexRiscv_GoblinAccel_SBus.v", "verilog")
+        platform.add_source("VintageBusFPGA_Common/VexRiscv_GoblinAccel_SBus.v", "verilog")
