@@ -12,7 +12,8 @@ from migen.genlib.cdc import MultiReg
 
 from litex.soc.cores.video import *
 
-from fb_video import *
+from VintageBusFPGA_Common.fb_video import *
+from VintageBusFPGA_Common.fb_dma import LiteDRAMFBDMAReader
 
 from math import ceil
 
@@ -141,7 +142,6 @@ class VideoFrameBufferMultiDepth(Module, AutoCSR):
         # # #
 
         # Video DMA.
-        from fb_dma import LiteDRAMFBDMAReader
         # length should be changed to match mode
         self.submodules.fb_dma = LiteDRAMFBDMAReader(dram_port,
                                                      fifo_depth     = fifo_depth//(dram_port.data_width//8),
