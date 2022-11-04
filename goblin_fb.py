@@ -356,9 +356,9 @@ class VideoFrameBufferMultiDepth(Module, AutoCSR):
             source.vsync.eq(source_out_vsync),
             source.valid.eq(source_out_valid),
             #source_out_ready.eq(source.ready), # ready flow the other way
-            source.r.eq(source_out_r),
+            source.r.eq(source_out_b), # something got swapped at some point...
             source.g.eq(source_out_g),
-            source.b.eq(source_out_b),
+            source.b.eq(source_out_r),
         ]
 
         # Underflow.
