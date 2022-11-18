@@ -12,3 +12,18 @@ Common stuff for SBusFPGA, NuBusFPGA, ...
 * fpga_blk_dma.py: a block DMA between a LIteSDRAM port and a set of FIFOs. Used to create burst (SBus) or block (NUbus) accesses from the device to the host memory. Used by RAM-based "disks".
 
 * wb_master.py: A small Wishbone master (originally from enjoy-gigital) that can do basic read/write/wait commands. Used to configure the DDR3 controller w/o firmware.
+
+## Not included:
+
+* Other framebuffers: SBusFPGA has other framebuffers (1-bit bw2, 8-bit cg3, accelerated 8-bit cg6) that 'emaulate' (in a limited way) vintage framebuffers. SBus-specific.
+
+* TRNG: a small True Random Number Generator, based on an old version of the neorv32's trng. Should be moved here, currently only in SBusFPGA.
+
+* USB: Dolu1990's OHCI USB controller & standard Litex wrapper.
+
+* SDRAM: standard LiteDRAM controller.
+
+* Crypto engine: a very customized version of the Betrusted.IO crypto engine, featuring AES and GCM support and a Load/Store unit. Should be moved here, currently only in SBusFPGA.
+
+* sdcard: standard LiteSDCard controller.
+
