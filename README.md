@@ -1,5 +1,5 @@
 # VintageBusFPGA_Common
-Common stuff for SBusFPGA, NuBusFPGA, ...
+Common stuff for [SBusFPGA](https://github.com/rdolbeau/SBusFPGA), [NuBusFPGA](https://github.com/rdolbeau/NuBusFPGA)
 
 ## Content
 
@@ -7,7 +7,7 @@ Common stuff for SBusFPGA, NuBusFPGA, ...
 
 * goblin_accel.py: acceleration engine for the 'Goblin' framebuffer. Basically a custom VexRiscv core (VexRiscv_GoblinAccel_NuBus.v or VexRiscv_GoblinAccel_SBus.v) and some firmware (the blit_goblin*.* files).
 
-* cdc_wb.py: a custom wrapper around (https://github.com/alexforencich/verilog-wishbone/blob/master/rtl/wb_async_reg.v)[alexforencich's wb_async_reg.v], a Wishbone DCD component. Feature a customizable time-out to avoir the fast side overloading the slow side (a bit hackish but it works for my use case).
+* cdc_wb.py: a custom wrapper around [alexforencich's wb_async_reg.v](https://github.com/alexforencich/verilog-wishbone/blob/master/rtl/wb_async_reg.v), a Wishbone DCD component. Feature a customizable time-out to avoir the fast side overloading the slow side (a bit hackish but it works for my use case).
 
 * fpga_blk_dma.py: a block DMA between a LIteSDRAM port and a set of FIFOs. Used to create burst (SBus) or block (NUbus) accesses from the device to the host memory. Used by RAM-based "disks".
 
