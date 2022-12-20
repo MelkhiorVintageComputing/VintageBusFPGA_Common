@@ -17,8 +17,8 @@ video_timing_nohwcursor_layout = [
     # Synchronization signals.
     ("hsync", 1),
     ("vsync", 1),
-    ("de",    1),
-    ("inframe", 1),
+    ("de",    1), # in the windowed part
+    ("inframe", 1), # in the full resolution
     # Extended/Optional synchronization signals.
     ("hres",   hbits),
     ("vres",   vbits),
@@ -42,11 +42,10 @@ video_timing_hwcursor_layout = [
     ("vcount", vbits),
 ]
 
-# FB Video Timing Generator ---------------------------------------------------------------------------
-# Same as the normal one except (a) _enable isn't a CSR
-
-class FBVideoTimingGenerator(Module, AutoCSR):
-    def __init__(self, default_video_timings="800x600@60Hz", hwcursor=False):
+# FB Video Timing Generator interface
+class FBVideoTimingGeneratorInterface(Module, AutoCSR):
+    def __init__(self, default_video_timings):
+        
         # Check / Get Video Timings (can be str or dict)
         if isinstance(default_video_timings, str):
             try:
@@ -58,10 +57,11 @@ class FBVideoTimingGenerator(Module, AutoCSR):
                 raise ValueError("\n".join(msg))
         else:
             self.video_timings = vt = default_video_timings
-
+            
         # MMAP Control/Status Registers.
         self.enable      = Signal() # external control signal
-
+        
+        # all CSR in Interface so we keep the same addresses for software
         self._hres        = CSRStorage(hbits, vt["h_active"])
         self._hsync_start = CSRStorage(hbits, vt["h_active"] + vt["h_sync_offset"])
         self._hsync_end   = CSRStorage(hbits, vt["h_active"] + vt["h_sync_offset"] + vt["h_sync_width"])
@@ -77,19 +77,22 @@ class FBVideoTimingGenerator(Module, AutoCSR):
         self._vres_start  = Signal(hbits, reset = 0)
         self._vres_end    = Signal(hbits, reset = vt["v_active"])
 
-        # Video Timing Source
-        if (hwcursor):
-            self.source = source = stream.Endpoint(video_timing_hwcursor_layout)
-            _hwcursor_x = Signal(12) # 12 out of 16 is enough
-            _hwcursor_y = Signal(12) # 12 out of 16 is enough
-            self.hwcursor_x = Signal(12)
-            self.hwcursor_y = Signal(12)
-            self.specials += MultiReg(self.hwcursor_x, _hwcursor_x)
-            self.specials += MultiReg(self.hwcursor_y, _hwcursor_y)
-        else:
-            self.source = source = stream.Endpoint(video_timing_nohwcursor_layout)
+        # Resynchronize Window to Video clock domain
+        # in Interface as they are the bits used by the non-LitexHDMI stuff
+        self.hres_start  = hres_start  = Signal(hbits)
+        self.hres_end    = hres_end    = Signal(hbits)
+        self.vres_start  = vres_start  = Signal(vbits)
+        self.vres_end    = vres_end    = Signal(vbits)
+        self.specials += MultiReg(self._hres_start, hres_start)
+        self.specials += MultiReg(self._hres_end,   hres_end)
+        self.specials += MultiReg(self._vres_start, vres_start)
+        self.specials += MultiReg(self._vres_end,   vres_end)
+        
 
-        # # #
+# FB Video Timing Generator ---------------------------------------------------------------------------
+class FBVideoTimingGenerator(FBVideoTimingGeneratorInterface):
+    def __init__(self, default_video_timings="800x600@60Hz", hwcursor=False):
+        FBVideoTimingGeneratorInterface.__init__(self, default_video_timings=default_video_timings)
 
         # Resynchronize Horizontal Timings to Video clock domain.
         self.hres        = hres        = Signal(hbits)
@@ -111,14 +114,33 @@ class FBVideoTimingGenerator(Module, AutoCSR):
         self.specials += MultiReg(self._vsync_end.storage,   vsync_end)
         self.specials += MultiReg(self._vscan.storage,       vscan)
 
-        self.hres_start  = hres_start  = Signal(hbits)
-        self.hres_end    = hres_end    = Signal(hbits)
-        self.vres_start  = vres_start  = Signal(vbits)
-        self.vres_end    = vres_end    = Signal(vbits)
-        self.specials += MultiReg(self._hres_start, hres_start)
-        self.specials += MultiReg(self._hres_end,   hres_end)
-        self.specials += MultiReg(self._vres_start, vres_start)
-        self.specials += MultiReg(self._vres_end,   vres_end)
+        # Video Timing Source
+        if (hwcursor):
+            self.source = source = stream.Endpoint(video_timing_hwcursor_layout)
+            _hwcursor_x = Signal(12) # 12 out of 16 is enough
+            _hwcursor_y = Signal(12) # 12 out of 16 is enough
+            self.hwcursor_x = Signal(12)
+            self.hwcursor_y = Signal(12)
+            self.specials += MultiReg(self.hwcursor_x, _hwcursor_x)
+            self.specials += MultiReg(self.hwcursor_y, _hwcursor_y)
+        else:
+            self.source = source = stream.Endpoint(video_timing_nohwcursor_layout)
+
+        # # #
+        hres        = self.hres
+        hsync_start = self.hsync_start
+        hsync_end   = self.hsync_end
+        hscan       = self.hscan
+        
+        vres        = self.vres
+        vsync_start = self.vsync_start
+        vsync_end   = self.vsync_end
+        vscan       = self.vscan
+
+        hres_start  = self.hres_start
+        hres_end    = self.hres_end
+        vres_start  = self.vres_start
+        vres_end    = self.vres_end
 
         # Generate timings.
         # whether we're in the visible frame
