@@ -15,6 +15,8 @@ from litex.soc.cores.video import *
 from VintageBusFPGA_Common.fb_video import *
 from VintageBusFPGA_Common.fb_dma import LiteDRAMFBDMAReader
 
+from VintageBusFPGA_Common.goblin_alt_audio import GoblinAudio
+
 from math import ceil
 
 cmap_layout = [
@@ -674,6 +676,13 @@ class GoblinAlt(Module, AutoCSR):
         hdmiext_rgb = Signal(24) # three colors at 8 bits each, fixme
         hdmiext_audio_word_0 = Signal(16) # channel 0 of stereo audio, fixme
         hdmiext_audio_word_1 = Signal(16) # channel 1 of stereo audio, fixme
+
+        self.submodules.goblin_audio = GoblinAudio(soc, 44.1e3)
+        self.comb += [
+            hdmiext_audio_clk.eq(self.goblin_audio.hdmiext_audio_clk),
+            hdmiext_audio_word_0.eq(self.goblin_audio.hdmiext_audio_word_0),
+            hdmiext_audio_word_1.eq(self.goblin_audio.hdmiext_audio_word_1),
+        ]
         
         ## OUTPUTS from the HDMI module
         hdmiext_tmds = Signal(3) # high-speed colors to the TMDS bits
@@ -693,8 +702,8 @@ class GoblinAlt(Module, AutoCSR):
             hdmiext_rgb[ 0: 8].eq(vfb.source.b),
             hdmiext_rgb[ 8:16].eq(vfb.source.g),
             hdmiext_rgb[16:24].eq(vfb.source.r),
-            hdmiext_audio_word_0.eq(0), # fixme: implement
-            hdmiext_audio_word_1.eq(0), # fixme: implement
+        ##    hdmiext_audio_word_0.eq(0), # fixme: implement
+        ##    hdmiext_audio_word_1.eq(0), # fixme: implement
             # use VTG enable to generate reset, to we have the same relationship to the DMA
             hdmiext_reset.eq(~vtg_enable),
         ]
@@ -757,19 +766,19 @@ class GoblinAlt(Module, AutoCSR):
             vfb.inframe.eq(hinframe & vinframe),
         ]
 
-        # basic 44.1 KHz clock based on the HDMI clock
-        audio_max = int((vtg.video_timings["pix_clk"] / 44100.0) + 0.5)
-        audio_max_bits = log2_int(audio_max, False)
-        audio_counter = Signal(audio_max_bits)
-        hdmi_sync += [
-            If(audio_counter == (audio_max - 1),
-               hdmiext_audio_clk.eq(1),
-               audio_counter.eq(0),
-            ).Else(
-                hdmiext_audio_clk.eq(0),
-                audio_counter.eq(audio_counter + 1),
-            ),
-        ]
+        ### basic 44.1 KHz clock based on the HDMI clock
+        ##audio_max = int((vtg.video_timings["pix_clk"] / 44100.0) + 0.5)
+        ##audio_max_bits = log2_int(audio_max, False)
+        ##audio_counter = Signal(audio_max_bits)
+        ##hdmi_sync += [
+        ##    If(audio_counter == (audio_max - 1),
+        ##       hdmiext_audio_clk.eq(1),
+        ##       audio_counter.eq(0),
+        ##    ).Else(
+        ##        hdmiext_audio_clk.eq(0),
+        ##        audio_counter.eq(audio_counter + 1),
+        ##    ),
+        ##]
         
         self.specials += Instance("hdmi",
                                   p_VIDEO_ID_CODE = 16, # CEA-861-D, "4.15 1920x1080p @ 59.94/60Hz (Format 16)", FIXME
