@@ -48,6 +48,14 @@ class GoblinAudio(Module, AutoCSR):
         self.buf1_size = CSRStorage(fields = [CSRField("size",     16, description = "Number of samples in audio buffer 1"),
                                               CSRField("reserved", 16, description = "Reserved"),
         ])
+        
+        self.buf_desc  = CSRStorage(fields = [CSRField("width",      1, description = "Sample width (0 = 16, 1 = 8)"),
+                                              CSRField("reserved0",  6, description = "Reserved"),
+                                              CSRField("signedness", 1, description = "Signedness (0 = signed, 1 = unsigned)"),
+                                              CSRField("freq",       1, description = "Sample frequency (0 = 44.100 KHz, 1 = 22.050 KHz)"),
+                                              CSRField("reserved1",  7, description = "Reserved"),
+                                              CSRField("reserved2", 16, description = "Reserved"),
+        ])
     
         # handle IRQ
         self.sync += If(self.irqctrl.fields.irq_clear, ## auto-reset irq_clear
@@ -151,11 +159,13 @@ class GoblinAudio(Module, AutoCSR):
                             # stay in "Play"
                      )
         )
-        
         led0 = soc.platform.request("user_led", 0)
+        led1 = soc.platform.request("user_led", 1)
         self.comb += [
             self.bufstatus.fields.play.eq(play_fsm.ongoing("Play")),
-            led0.eq(play_fsm.ongoing("Play")),
+            #led0.eq(play_fsm.ongoing("Play")),
+            led0.eq(self.buf_desc.fields.signedness),
+            led1.eq(self.buf_desc.fields.width),
         ]
 
         # auto-reload
@@ -171,18 +181,60 @@ class GoblinAudio(Module, AutoCSR):
                        NextValue(busmaster.sel, 2**len(busmaster.sel)-1),
                        NextValue(busmaster.we, 0),
                        NextValue(busmaster.adr, next_adr),
-                       NextState("WaitForAck")
-                    )
+                       If(~self.buf_desc.fields.width,
+                          NextState("WaitForAck16")
+                       ).Else(
+                           NextState("WaitForAck8")
+                       ),
+                    ),
         )
-        req_fsm.act("WaitForAck",
+        req_fsm.act("WaitForAck16",
                     If(busmaster.ack,
                        NextValue(busmaster.cyc, 0),
                        NextValue(busmaster.stb, 0),
-                       NextValue(hdmiext_audio_word_0, Cat(busmaster.dat_r[ 8:16], busmaster.dat_r[ 0: 8])), # fixme: endianess
-                       NextValue(hdmiext_audio_word_1, Cat(busmaster.dat_r[24:32], busmaster.dat_r[16:24])), # fixme: endianess
-                       NextValue(next_adr, next_adr + 1), # fixme
+                       NextValue(hdmiext_audio_word_0, Cat(busmaster.dat_r[ 8:16], busmaster.dat_r[ 0: 8])),
+                       NextValue(hdmiext_audio_word_1, Cat(busmaster.dat_r[24:32], busmaster.dat_r[16:24])),
+                       NextValue(next_adr, next_adr + 1),
                        NextValue(sample_cnt, sample_cnt - 1),
                        NextValue(need_data, 0), # this will self-reset to 1 above after the next audio_clk cycle, i.e. when hdmi consume the data
                        NextState("Idle"),
                     )
+        )
+        nextSample = Signal(16)
+        req_fsm.act("WaitForAck8",
+                    If(busmaster.ack,
+                       NextValue(busmaster.cyc, 0),
+                       NextValue(busmaster.stb, 0),
+                       NextValue(hdmiext_audio_word_0, Cat(Replicate(0, 4),
+                                                           busmaster.dat_r[16:24],
+                                                           Replicate(~self.buf_desc.fields.signedness & busmaster.dat_r[23], 4)) -
+                                                       Cat(Replicate(0, 11), self.buf_desc.fields.signedness, Replicate(0, 4))), # fixme: endianess
+                       NextValue(hdmiext_audio_word_1, Cat(Replicate(0, 4),
+                                                           busmaster.dat_r[24:32],
+                                                           Replicate(~self.buf_desc.fields.signedness & busmaster.dat_r[31], 4)) -
+                                                       Cat(Replicate(0, 11), self.buf_desc.fields.signedness, Replicate(0, 4))), # fixme: endianess
+                       NextValue(nextSample, busmaster.dat_r[ 0:16]),
+                       NextValue(next_adr, next_adr + 1),
+                       NextValue(sample_cnt, sample_cnt - 1),
+                       NextValue(need_data, 0), # this will self-reset to 1 above after the next audio_clk cycle, i.e. when hdmi consume the data
+                       NextState("SecondSample8"),
+                    )
+        )
+        req_fsm.act("SecondSample8",
+                    If(~self.ctrl.fields.play | ~play_fsm.ongoing("Play") | (sample_cnt == 0),
+                       NextState("Idle"),
+                    ).Elif(need_data,
+                           NextValue(hdmiext_audio_word_0, Cat(Replicate(0, 4),
+                                                               nextSample[ 0: 8],
+                                                               Replicate(~self.buf_desc.fields.signedness & nextSample[ 7], 4)) -
+                                                           Cat(Replicate(0, 11), self.buf_desc.fields.signedness, Replicate(0, 4))), # fixme: endianess
+                           NextValue(hdmiext_audio_word_1, Cat(Replicate(0, 4),
+                                                               nextSample[ 8:16],
+                                                               Replicate(~self.buf_desc.fields.signedness & nextSample[15], 4)) -
+                                                           Cat(Replicate(0, 11), self.buf_desc.fields.signedness, Replicate(0, 4))), # fixme: endianess
+                           NextValue(sample_cnt, sample_cnt - 1),
+                           NextValue(need_data, 0), # this will self-reset to 1 above after the next audio_clk cycle, i.e. when hdmi consume the data
+                           NextState("Idle"),
+                    )
+                    
         )
