@@ -50,7 +50,8 @@ class GoblinAudio(Module, AutoCSR):
         ])
         
         self.buf_desc  = CSRStorage(fields = [CSRField("width",      1, description = "Sample width (0 = 16, 1 = 8)"),
-                                              CSRField("reserved0",  6, description = "Reserved"),
+                                              CSRField("reserved0",  5, description = "Reserved"),
+                                              CSRField("mono",       1, description = "Mono (0 = Stereo, 1 = Mono)"),
                                               CSRField("signedness", 1, description = "Signedness (0 = signed, 1 = unsigned)"),
                                               CSRField("freq",       1, description = "Sample frequency (0 = 44.100 KHz, 1 = 22.050 KHz)"),
                                               CSRField("reserved1",  7, description = "Reserved"),
@@ -165,11 +166,14 @@ class GoblinAudio(Module, AutoCSR):
             self.bufstatus.fields.play.eq(play_fsm.ongoing("Play")),
             #led0.eq(play_fsm.ongoing("Play")),
             led0.eq(self.buf_desc.fields.signedness),
-            led1.eq(self.buf_desc.fields.width),
+            led1.eq(self.buf_desc.fields.mono),
         ]
 
-        # auto-reload
+        # intermediate storage when playing less than stereo 16-bits
+        
+        nextSample = Signal(24)
 
+        # auto-reload
         self.submodules.req_fsm = req_fsm = FSM(reset_state="Reset")
         req_fsm.act("Reset",
                     NextState("Idle")
@@ -192,28 +196,54 @@ class GoblinAudio(Module, AutoCSR):
                     If(busmaster.ack,
                        NextValue(busmaster.cyc, 0),
                        NextValue(busmaster.stb, 0),
-                       NextValue(hdmiext_audio_word_0, Cat(busmaster.dat_r[ 8:16], busmaster.dat_r[ 0: 8])),
+                       If(~self.buf_desc.fields.mono,
+                          NextValue(hdmiext_audio_word_0, Cat(busmaster.dat_r[ 8:16], busmaster.dat_r[ 0: 8])),
+                          NextState("Idle"),
+                       ).Else(
+                           NextValue(hdmiext_audio_word_0, Cat(busmaster.dat_r[24:32], busmaster.dat_r[16:24])),
+                           NextValue(nextSample[ 0:24], busmaster.dat_r[ 0:24]), # only 16 are needed, what's most efficient ?
+                           NextState("SecondSample16"),
+                       ),
                        NextValue(hdmiext_audio_word_1, Cat(busmaster.dat_r[24:32], busmaster.dat_r[16:24])),
                        NextValue(next_adr, next_adr + 1),
                        NextValue(sample_cnt, sample_cnt - 1),
                        NextValue(need_data, 0), # this will self-reset to 1 above after the next audio_clk cycle, i.e. when hdmi consume the data
-                       NextState("Idle"),
                     )
         )
-        nextSample = Signal(16)
+        req_fsm.act("SecondSample16",
+                    If(~self.ctrl.fields.play | ~play_fsm.ongoing("Play") | (sample_cnt == 0),
+                       NextState("Idle"),
+                    ).Elif(need_data,
+                           NextValue(hdmiext_audio_word_0, Cat(nextSample[ 8:16], nextSample[ 0: 8])),
+                           NextValue(hdmiext_audio_word_1, Cat(nextSample[ 8:16], nextSample[ 0: 8])),
+                           NextValue(sample_cnt, sample_cnt - 1),
+                           NextValue(need_data, 0), # this will self-reset to 1 above after the next audio_clk cycle, i.e. when hdmi consume the data
+                           NextState("Idle"),
+                    )
+        )
+
+        offset8bits = 7 # by how many bits to shift 8-bits audio to create 16-bits ; 0 to 8 
+        
         req_fsm.act("WaitForAck8",
                     If(busmaster.ack,
                        NextValue(busmaster.cyc, 0),
                        NextValue(busmaster.stb, 0),
-                       NextValue(hdmiext_audio_word_0, Cat(Replicate(0, 4),
-                                                           busmaster.dat_r[16:24],
-                                                           Replicate(~self.buf_desc.fields.signedness & busmaster.dat_r[23], 4)) -
-                                                       Cat(Replicate(0, 11), self.buf_desc.fields.signedness, Replicate(0, 4))), # fixme: endianess
-                       NextValue(hdmiext_audio_word_1, Cat(Replicate(0, 4),
+                       If(~self.buf_desc.fields.mono,
+                          NextValue(hdmiext_audio_word_0, Cat(Replicate(0, offset8bits),
+                                                              busmaster.dat_r[16:24],
+                                                              Replicate(~self.buf_desc.fields.signedness & busmaster.dat_r[23], 8-offset8bits)) -
+                                                          Cat(Replicate(0, 7+offset8bits), self.buf_desc.fields.signedness, Replicate(0, 8-offset8bits))), # fixme: endianess
+                       ).Else(
+                           NextValue(hdmiext_audio_word_0, Cat(Replicate(0, offset8bits),
+                                                               busmaster.dat_r[24:32],
+                                                               Replicate(~self.buf_desc.fields.signedness & busmaster.dat_r[31], 8-offset8bits)) -
+                                                           Cat(Replicate(0, 7+offset8bits), self.buf_desc.fields.signedness, Replicate(0, 8-offset8bits))), # fixme: endianess
+                       ),
+                       NextValue(hdmiext_audio_word_1, Cat(Replicate(0, offset8bits),
                                                            busmaster.dat_r[24:32],
-                                                           Replicate(~self.buf_desc.fields.signedness & busmaster.dat_r[31], 4)) -
-                                                       Cat(Replicate(0, 11), self.buf_desc.fields.signedness, Replicate(0, 4))), # fixme: endianess
-                       NextValue(nextSample, busmaster.dat_r[ 0:16]),
+                                                           Replicate(~self.buf_desc.fields.signedness & busmaster.dat_r[31], 8-offset8bits)) -
+                                                       Cat(Replicate(0, 7+offset8bits), self.buf_desc.fields.signedness, Replicate(0, 8-offset8bits))), # fixme: endianess
+                       NextValue(nextSample[ 0:24], busmaster.dat_r[ 0:24]), # only 16 are needed if ~mono, what's more efficient ?
                        NextValue(next_adr, next_adr + 1),
                        NextValue(sample_cnt, sample_cnt - 1),
                        NextValue(need_data, 0), # this will self-reset to 1 above after the next audio_clk cycle, i.e. when hdmi consume the data
@@ -224,17 +254,64 @@ class GoblinAudio(Module, AutoCSR):
                     If(~self.ctrl.fields.play | ~play_fsm.ongoing("Play") | (sample_cnt == 0),
                        NextState("Idle"),
                     ).Elif(need_data,
-                           NextValue(hdmiext_audio_word_0, Cat(Replicate(0, 4),
-                                                               nextSample[ 0: 8],
-                                                               Replicate(~self.buf_desc.fields.signedness & nextSample[ 7], 4)) -
-                                                           Cat(Replicate(0, 11), self.buf_desc.fields.signedness, Replicate(0, 4))), # fixme: endianess
-                           NextValue(hdmiext_audio_word_1, Cat(Replicate(0, 4),
-                                                               nextSample[ 8:16],
-                                                               Replicate(~self.buf_desc.fields.signedness & nextSample[15], 4)) -
-                                                           Cat(Replicate(0, 11), self.buf_desc.fields.signedness, Replicate(0, 4))), # fixme: endianess
+                           If(~self.buf_desc.fields.mono,
+                              NextValue(hdmiext_audio_word_0, Cat(Replicate(0, offset8bits),
+                                                                  nextSample[ 0: 8],
+                                                                  Replicate(~self.buf_desc.fields.signedness & nextSample[ 7], 8-offset8bits)) -
+                                                              Cat(Replicate(0, 7+offset8bits), self.buf_desc.fields.signedness, Replicate(0, 8-offset8bits))), # fixme: endianess
+                              NextValue(hdmiext_audio_word_1, Cat(Replicate(0, offset8bits),
+                                                                  nextSample[ 8:16],
+                                                                  Replicate(~self.buf_desc.fields.signedness & nextSample[15], 8-offset8bits)) -
+                                                              Cat(Replicate(0, 7+offset8bits), self.buf_desc.fields.signedness, Replicate(0, 8-offset8bits))), # fixme: endianess
+                              NextState("Idle"),
+                           ).Else(
+                              NextValue(hdmiext_audio_word_0, Cat(Replicate(0, offset8bits),
+                                                                  nextSample[16:24],
+                                                                  Replicate(~self.buf_desc.fields.signedness & nextSample[ 7], 8-offset8bits)) -
+                                                              Cat(Replicate(0, 7+offset8bits), self.buf_desc.fields.signedness, Replicate(0, 8-offset8bits))), # fixme: endianess
+                              NextValue(hdmiext_audio_word_1, Cat(Replicate(0, offset8bits),
+                                                                  nextSample[16:24],
+                                                                  Replicate(~self.buf_desc.fields.signedness & nextSample[15], 8-offset8bits)) -
+                                                              Cat(Replicate(0, 7+offset8bits), self.buf_desc.fields.signedness, Replicate(0, 8-offset8bits))), # fixme: endianess
+                              NextState("ThirdSample8"),
+                           ),
                            NextValue(sample_cnt, sample_cnt - 1),
                            NextValue(need_data, 0), # this will self-reset to 1 above after the next audio_clk cycle, i.e. when hdmi consume the data
-                           NextState("Idle"),
                     )
-                    
+        )
+        req_fsm.act("ThirdSample8",
+                    If(~self.ctrl.fields.play | ~play_fsm.ongoing("Play") | (sample_cnt == 0),
+                       NextState("Idle"),
+                    ).Elif(need_data,
+                           # mono only here
+                           NextValue(hdmiext_audio_word_0, Cat(Replicate(0, offset8bits),
+                                                               nextSample[ 8:16],
+                                                               Replicate(~self.buf_desc.fields.signedness & nextSample[ 7], 8-offset8bits)) -
+                                                           Cat(Replicate(0, 7+offset8bits), self.buf_desc.fields.signedness, Replicate(0, 8-offset8bits))), # fixme: endianess
+                           NextValue(hdmiext_audio_word_1, Cat(Replicate(0, offset8bits),
+                                                               nextSample[ 8:16],
+                                                               Replicate(~self.buf_desc.fields.signedness & nextSample[15], 8-offset8bits)) -
+                                                           Cat(Replicate(0, 7+offset8bits), self.buf_desc.fields.signedness, Replicate(0, 8-offset8bits))), # fixme: endianess
+                           NextState("FourthSample8"),
+                           NextValue(sample_cnt, sample_cnt - 1),
+                           NextValue(need_data, 0), # this will self-reset to 1 above after the next audio_clk cycle, i.e. when hdmi consume the data
+                    )
+        )
+        req_fsm.act("FourthSample8",
+                    If(~self.ctrl.fields.play | ~play_fsm.ongoing("Play") | (sample_cnt == 0),
+                       NextState("Idle"),
+                    ).Elif(need_data,
+                           # mono only here
+                           NextValue(hdmiext_audio_word_0, Cat(Replicate(0, offset8bits),
+                                                               nextSample[ 0: 8],
+                                                               Replicate(~self.buf_desc.fields.signedness & nextSample[ 7], 8-offset8bits)) -
+                                                           Cat(Replicate(0, 7+offset8bits), self.buf_desc.fields.signedness, Replicate(0, 8-offset8bits))), # fixme: endianess
+                           NextValue(hdmiext_audio_word_1, Cat(Replicate(0, offset8bits),
+                                                               nextSample[ 0: 8],
+                                                               Replicate(~self.buf_desc.fields.signedness & nextSample[15], 8-offset8bits)) -
+                                                           Cat(Replicate(0, 7+offset8bits), self.buf_desc.fields.signedness, Replicate(0, 8-offset8bits))), # fixme: endianess
+                           NextState("Idle"),
+                           NextValue(sample_cnt, sample_cnt - 1),
+                           NextValue(need_data, 0), # this will self-reset to 1 above after the next audio_clk cycle, i.e. when hdmi consume the data
+                    )
         )
