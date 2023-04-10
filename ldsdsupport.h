@@ -121,3 +121,24 @@ static inline unsigned int ufma8vlv(const unsigned int a, const unsigned int b, 
 	_ufma8vlv(r, a, b);
 	return r;
 }
+
+#ifdef COMPILER_SUPPORT_FSR
+static inline unsigned int fsr(const unsigned int a, const unsigned int b, const unsigned int c) {
+  unsigned int r;
+  asm("fsr %0, %1, %2, %3\n" : "=r"(r) : "r"(a), "r"(b), "r"(c));
+  return r;
+}
+#else
+#define opcode_zbt(opcode, func3, func2, rd, rs1, rs2, rs3)		\
+  asm volatile(".word ((" #opcode ") | (regnum_%0 << 7) | (regnum_%1 << 15) | (regnum_%2 << 20) | ((" #func3 ") << 12) | ((" #func2 ") << 25) | (regnum_%3 << 27));" \
+	       : "=r" (rd)						\
+	       : "r" (rs1), "r" (rs2), "r" (rs3)			\
+	       );
+#define _fsr(rd, rs1, rs2, rs3) opcode_zbt(0x00000033, 0x05, 0x02, rd, rs1, rs2, rs3)
+
+static inline unsigned int fsr(const unsigned int a, const unsigned int b, const unsigned int c) {
+  unsigned int r;
+  _fsr(r, a, c, b); // !!!!
+  return r;
+}
+#endif

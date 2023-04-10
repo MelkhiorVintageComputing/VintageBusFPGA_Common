@@ -812,7 +812,7 @@ static void invert(const unsigned_param_type xd,
 				for ( ; i < (wi-3) ; i+=4) {							\
 					unsigned int src1 = ((unsigned int*)sptr_elt_al)[1]; \
 					unsigned int val;									\
-					asm("fsr %0, %1, %2, %3\n" : "=r"(val) : "r"(src0), "r"(src1), "r"(fsr_cst)); \
+					val = fsr(src0, src1, fsr_cst);	\
 					OP(*(unsigned int*)dptr_elt, val, u32pm, u32npm);	\
 					src0 = src1;										\
 					dptr_elt += 4;										\
@@ -918,7 +918,7 @@ static void invert(const unsigned_param_type xd,
 				for ( ; i < (wi-3) ; i+=4) {							\
 					unsigned int src1 = ((unsigned int*)sptr_elt_al)[1]; \
 					unsigned int val;									\
-					asm("fsr %0, %1, %2, %3\n" : "=r"(val) : "r"(src0), "r"(src1), "r"(fsr_cst)); \
+					val = fsr(src0, src1, fsr_cst);	\
 					OP(*(unsigned int*)dptr_elt, val, u32pm, u32npm);	\
 					src0 = src1;										\
 					dptr_elt += 4;										\
@@ -1015,7 +1015,7 @@ static void bitblit_fwd_fwd_copy(const unsigned_param_type xs,
 				for ( ; (dptr_elt < (dptr_elt_last-3)) ; ) {
 					unsigned int src1 = ((unsigned int*)sptr_elt_al)[1];
 					unsigned int val;
-					asm("fsr %0, %1, %2, %3\n" : "=r"(val) : "r"(src0), "r"(src1), "r"(fsr_cst));
+					val = fsr(src0, src1, fsr_cst);
 					((unsigned int*)dptr_elt)[0] = val;
 					src0 = src1;
 					dptr_elt += 4;
@@ -1153,7 +1153,7 @@ static void patternrectfill(const unsigned_param_type xd,
 			for ( ; i < (wi-3) ; i+=4) {
 				unsigned int src1 = ((unsigned int*)pat_ptr_line)[((i+io+4) & pat_xmask) >> 2];
 				unsigned int val;
-				asm("fsr %0, %1, %2, %3\n" : "=r"(val) : "r"(src0), "r"(src1), "r"(fsr_cst));
+				val = fsr(src0, src1, fsr_cst);
 				((unsigned int*)dptr_elt)[0] = val;
 				src0 = src1;
 				dptr_elt += 4;
@@ -1318,7 +1318,7 @@ static inline uint32_t pixelswap(const uint32_t p) {
 	/* uint32_t r = __builtin_bswap32(p); */
 	/* asm("fsr %0, %1, %2, %3\n" : "=r"(r) : "r"(r), "r"(r), "r"(8)); */
 	uint32_t r;
-	asm("fsr %0, %1, %2, %3\n" : "=r"(r) : "r"(p), "r"(p), "r"(8));
+	r = fsr(p, p, 8);
 	return __builtin_bswap32(r);
 }
 

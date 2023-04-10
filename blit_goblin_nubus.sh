@@ -15,8 +15,12 @@ GCCPFX=riscv32-buildroot-linux-gnu-
 GCC=${GCCDIR}/bin/${GCCPFX}gcc
 OBJCOPY=${GCCDIR}/bin/${GCCPFX}objcopy
 
-OPT=-O3 #-fno-inline
-ARCH=rv32im_zba_zbb_zbt
+## for compiler that support Zbt, not yet mainline GCC
+#OPT="-O3 -DCOMPILER_SUPPORT_FSR" #-fno-inline
+#ARCH=rv32im_zba_zbb_zbt
+## for mainline GCC recent enough to have Zba/Zbb support (older unsupported)
+OPT="-O3" #-fno-inline
+ARCH=rv32im_zba_zbb
 
 PARAM="-DBASE_FB=${BASE_FB} -DGOBLIN_NUBUS"
 
