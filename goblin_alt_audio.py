@@ -25,7 +25,14 @@ class GoblinAudio(Module, AutoCSR):
                                               CSRField("reserved", 31, description = "Reserved")
         ])
 
-        
+        # The SW should specify the buffer to use (currently 0 or 1), autostop (if not set, keep playing the next buffer in RR order), and start play
+        # buffers are definied in buf0_* and buf1_*, and can be anywhere accessible through Wishbone
+        # the type of data is defined in buf_dec, and must be homogeneous accross buffers
+        # an interrupt is generated each time a buffer is emptied
+        # the theory of operations is
+        # (a) if the audio is small enough to fit in one buffer, then the SW starts the buffer with autostop (short sound or without (for continuous looping)
+        # (b) if the audio is larger, then some goes in the first buffer, next part in the second buffer, and the SW starts the first buffer without autostop.
+        #     Once the first buffer has been played, the HW will emit the interrupt and play the second buffer. The SW can then fill out the first buffer with new data. When the second buffer is played, a new interrupt is emmitted and the first buffer starts playing. This enables uninterrupted play. Once the SW determines the next buffer is the last, it just turns on autostop.
         self.ctrl = CSRStorage(write_from_dev=True, fields = [CSRField("buffer_num",  1, description = "Buffer to use"),
                                                               CSRField("reserved0",   7, description = "Reserved"),
                                                               CSRField("play",        1, description = "Play (start with specified buffer and keel looping over all buffers)"),
@@ -160,13 +167,12 @@ class GoblinAudio(Module, AutoCSR):
                             # stay in "Play"
                      )
         )
-        led0 = soc.platform.request("user_led", 0)
-        led1 = soc.platform.request("user_led", 1)
+        #led0 = soc.platform.request("user_led", 0)
+        #led1 = soc.platform.request("user_led", 1)
         self.comb += [
             self.bufstatus.fields.play.eq(play_fsm.ongoing("Play")),
-            #led0.eq(play_fsm.ongoing("Play")),
-            led0.eq(self.buf_desc.fields.signedness),
-            led1.eq(self.buf_desc.fields.mono),
+            #led0.eq(self.buf_desc.fields.signedness),
+            #led1.eq(self.buf_desc.fields.mono),
         ]
 
         # intermediate storage when playing less than stereo 16-bits
