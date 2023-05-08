@@ -1,0 +1,23 @@
+Drill report for /home/dolbeau/SPARC/SBusFPGA/FLASH+TEMP-PMOD/FLASHTEMP.kicad_pcb
+Created on Sun Nov 27 17:15:44 2022
+
+Copper Layer Stackup:
+    =============================================================
+    L1 :  F.Cu                      front
+    L2 :  B.Cu                      back
+
+
+Drill file 'FLASHTEMP-PTH.drl' contains
+    plated through holes:
+    =============================================================
+    T1  0.30mm  0.012"  (11 holes)
+    T2  1.00mm  0.039"  (12 holes)
+
+    Total plated holes count 23
+
+
+Drill file 'FLASHTEMP-NPTH.drl' contains
+    unplated through holes:
+    =============================================================
+
+    Total unplated holes count 0

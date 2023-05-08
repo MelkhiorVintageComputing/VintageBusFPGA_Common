@@ -1,0 +1,16 @@
+### Module positions - created on Sun Nov 27 17:16:06 2022 ###
+### Printed by Pcbnew version kicad 5.1.9+dfsg1-1~bpo10+1
+## Unit = mm, Angle = deg.
+## Side : top
+# Ref     Val         Package                                    PosX       PosY       Rot  Side
+C1        10nF_0402   C_0402_1005Metric                       12.0000    -3.0000  180.0000  top
+C2        100nF_0402  C_0402_1005Metric                        4.5000    -0.2500  180.0000  top
+C3        1uF_0402    C_0402_1005Metric                        7.0000    -0.2500    0.0000  top
+R1        5.6k_0402   R_0402_1005Metric                        5.4160    -4.7210  270.0000  top
+R2        5.6k_0402   R_0402_1005Metric                        4.1660    -4.7210  270.0000  top
+R3        5.6k_0402   R_0402_1005Metric                        9.7000     0.3000  180.0000  top
+R4        5.6k_0402   R_0402_1005Metric                        9.7000    -2.3000  180.0000  top
+R5        5.6k_0402   R_0402_1005Metric                        9.7000    -1.0000  180.0000  top
+U1        PCT2075DP   TSSOP-8_3x3mm_P0.65mm_ForSeeedStudio    10.2500    -6.0000    0.0000  top
+U3        W25Q128JVS  SOIC-8_5.23x5.23mm_P1.27mm               8.4550     4.0000  180.0000  top
+## End

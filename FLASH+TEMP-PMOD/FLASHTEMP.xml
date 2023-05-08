@@ -1,0 +1,331 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<export version="D">
+  <design>
+    <source>/home/dolbeau/SPARC/SBusFPGA/FLASH+TEMP-PMOD/FLASHTEMP.sch</source>
+    <date>Sun Nov 27 17:15:33 2022</date>
+    <tool>Eeschema 5.1.9+dfsg1-1~bpo10+1</tool>
+    <sheet number="1" name="/" tstamps="/">
+      <title_block>
+        <title/>
+        <company/>
+        <rev/>
+        <date/>
+        <source>FLASHTEMP.sch</source>
+        <comment number="1" value=""/>
+        <comment number="2" value=""/>
+        <comment number="3" value=""/>
+        <comment number="4" value=""/>
+      </title_block>
+    </sheet>
+  </design>
+  <components>
+    <comp ref="J2">
+      <value>Conn_02x06_Odd_Even</value>
+      <footprint>Connector_PinHeader_2.54mm:PinHeader_2x06_P2.54mm_Horizontal</footprint>
+      <datasheet>~</datasheet>
+      <fields>
+        <field name="MPN">A2541WR-2x6P</field>
+        <field name="MPN-ALT">10129382-912001BLF</field>
+      </fields>
+      <libsource lib="Connector_Generic" part="Conn_02x06_Odd_Even" description="Generic connector, double row, 02x06, odd/even pin numbering scheme (row 1 odd numbers, row 2 even numbers), script generated (kicad-library-utils/schlib/autogen/connector/)"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>5E0BFDF9</tstamp>
+    </comp>
+    <comp ref="C1">
+      <value>10nF 0402</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <fields>
+        <field name="LCSC">C354974</field>
+        <field name="MPN">CC0402JRX7R7BB103</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>62C72620</tstamp>
+    </comp>
+    <comp ref="R1">
+      <value>5.6k 0402</value>
+      <footprint>Resistor_SMD:R_0402_1005Metric</footprint>
+      <fields>
+        <field name="LCSC">C25908</field>
+        <field name="MPN">0402WGF5601TCE</field>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>62C7265B</tstamp>
+    </comp>
+    <comp ref="R2">
+      <value>5.6k 0402</value>
+      <footprint>Resistor_SMD:R_0402_1005Metric</footprint>
+      <fields>
+        <field name="LCSC">C25908</field>
+        <field name="MPN">0402WGF5601TCE</field>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>62C72663</tstamp>
+    </comp>
+    <comp ref="U3">
+      <value>W25Q128JVS</value>
+      <footprint>Package_SO:SOIC-8_5.23x5.23mm_P1.27mm</footprint>
+      <fields>
+        <field name="LCSC">C97521</field>
+        <field name="MPN">W25Q128JVSIQ</field>
+      </fields>
+      <libsource lib="Memory_Flash" part="MX25R3235FZNxx1" description="32-Mbit, Wide Range Voltage SPI Serial Flash Memory, WSON-8"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>63846627</tstamp>
+    </comp>
+    <comp ref="C2">
+      <value>100nF 0402</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <fields>
+        <field name="LCSC">C541464</field>
+        <field name="MPN">CC0402JRX7R7BB104</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>6385CAD7</tstamp>
+    </comp>
+    <comp ref="C3">
+      <value>1uF 0402</value>
+      <footprint>Capacitor_SMD:C_0402_1005Metric</footprint>
+      <fields>
+        <field name="LCSC">C115046</field>
+        <field name="MPN">CC0402KRX7R5BB105</field>
+      </fields>
+      <libsource lib="Device" part="C" description="Unpolarized capacitor"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>6385E9F6</tstamp>
+    </comp>
+    <comp ref="U1">
+      <value>PCT2075DP</value>
+      <footprint>For_SeeedStudio:TSSOP-8_3x3mm_P0.65mm_ForSeeedStudio</footprint>
+      <datasheet>https://www.nxp.com/docs/en/data-sheet/PCT2075.pdf</datasheet>
+      <fields>
+        <field name="LCSC">C192518</field>
+        <field name="MPN">PCT2075DP,118</field>
+      </fields>
+      <libsource lib="Sensor_Temperature" part="PCT2075DP" description="NXP I2C-bus Fm+ digital temperature sensor and thermal watchdog, TSSOP-8"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>6387AF69</tstamp>
+    </comp>
+    <comp ref="R3">
+      <value>5.6k 0402</value>
+      <footprint>Resistor_SMD:R_0402_1005Metric</footprint>
+      <fields>
+        <field name="LCSC">C25908</field>
+        <field name="MPN">0402WGF5601TCE</field>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>6389A610</tstamp>
+    </comp>
+    <comp ref="R4">
+      <value>5.6k 0402</value>
+      <footprint>Resistor_SMD:R_0402_1005Metric</footprint>
+      <fields>
+        <field name="LCSC">C25908</field>
+        <field name="MPN">0402WGF5601TCE</field>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>6389BB65</tstamp>
+    </comp>
+    <comp ref="R5">
+      <value>5.6k 0402</value>
+      <footprint>Resistor_SMD:R_0402_1005Metric</footprint>
+      <fields>
+        <field name="LCSC">C25908</field>
+        <field name="MPN">0402WGF5601TCE</field>
+      </fields>
+      <libsource lib="Device" part="R" description="Resistor"/>
+      <sheetpath names="/" tstamps="/"/>
+      <tstamp>6389BF9C</tstamp>
+    </comp>
+  </components>
+  <libparts>
+    <libpart lib="Connector_Generic" part="Conn_02x06_Odd_Even">
+      <description>Generic connector, double row, 02x06, odd/even pin numbering scheme (row 1 odd numbers, row 2 even numbers), script generated (kicad-library-utils/schlib/autogen/connector/)</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>Connector*:*_2x??_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">J</field>
+        <field name="Value">Conn_02x06_Odd_Even</field>
+      </fields>
+      <pins>
+        <pin num="1" name="Pin_1" type="passive"/>
+        <pin num="2" name="Pin_2" type="passive"/>
+        <pin num="3" name="Pin_3" type="passive"/>
+        <pin num="4" name="Pin_4" type="passive"/>
+        <pin num="5" name="Pin_5" type="passive"/>
+        <pin num="6" name="Pin_6" type="passive"/>
+        <pin num="7" name="Pin_7" type="passive"/>
+        <pin num="8" name="Pin_8" type="passive"/>
+        <pin num="9" name="Pin_9" type="passive"/>
+        <pin num="10" name="Pin_10" type="passive"/>
+        <pin num="11" name="Pin_11" type="passive"/>
+        <pin num="12" name="Pin_12" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Device" part="C">
+      <description>Unpolarized capacitor</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>C_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">C</field>
+        <field name="Value">C</field>
+      </fields>
+      <pins>
+        <pin num="1" name="~" type="passive"/>
+        <pin num="2" name="~" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Device" part="R">
+      <description>Resistor</description>
+      <docs>~</docs>
+      <footprints>
+        <fp>R_*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">R</field>
+        <field name="Value">R</field>
+      </fields>
+      <pins>
+        <pin num="1" name="~" type="passive"/>
+        <pin num="2" name="~" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Memory_Flash" part="MX25R3235FZNxx1">
+      <description>32-Mbit, Wide Range Voltage SPI Serial Flash Memory, WSON-8</description>
+      <docs>http://www.macronix.com/Lists/Datasheet/Attachments/7534/MX25R3235F,%20Wide%20Range,%2032Mb,%20v1.6.pdf</docs>
+      <footprints>
+        <fp>WSON*1EP*6x5mm*P1.27mm*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">MX25R3235FZNxx1</field>
+        <field name="Footprint">Package_SON:WSON-8-1EP_6x5mm_P1.27mm_EP3.4x4mm</field>
+      </fields>
+      <pins>
+        <pin num="1" name="~CS" type="input"/>
+        <pin num="2" name="SO/SIO1" type="BiDi"/>
+        <pin num="3" name="~WP~/SIO2" type="BiDi"/>
+        <pin num="4" name="GND" type="power_in"/>
+        <pin num="5" name="SI/SIO0" type="BiDi"/>
+        <pin num="6" name="SCLK" type="input"/>
+        <pin num="7" name="~HOLD~/SIO3" type="BiDi"/>
+        <pin num="8" name="VCC" type="power_in"/>
+        <pin num="9" name="GND" type="passive"/>
+      </pins>
+    </libpart>
+    <libpart lib="Sensor_Temperature" part="PCT2075DP">
+      <description>NXP I2C-bus Fm+ digital temperature sensor and thermal watchdog, TSSOP-8</description>
+      <docs>https://www.nxp.com/docs/en/data-sheet/PCT2075.pdf</docs>
+      <footprints>
+        <fp>TSSOP*3x3mm*P0.65mm*</fp>
+      </footprints>
+      <fields>
+        <field name="Reference">U</field>
+        <field name="Value">PCT2075DP</field>
+        <field name="Footprint">Package_SO:TSSOP-8_3x3mm_P0.65mm</field>
+      </fields>
+      <pins>
+        <pin num="1" name="SDA" type="BiDi"/>
+        <pin num="2" name="SCL" type="input"/>
+        <pin num="3" name="OS" type="openCol"/>
+        <pin num="4" name="GND" type="power_in"/>
+        <pin num="5" name="A2" type="input"/>
+        <pin num="6" name="A1" type="input"/>
+        <pin num="7" name="A0" type="input"/>
+        <pin num="8" name="VCC" type="power_in"/>
+      </pins>
+    </libpart>
+  </libparts>
+  <libraries>
+    <library logical="Connector_Generic">
+      <uri>/usr/share/kicad/library/Connector_Generic.lib</uri>
+    </library>
+    <library logical="Device">
+      <uri>/usr/share/kicad/library/Device.lib</uri>
+    </library>
+    <library logical="Memory_Flash">
+      <uri>/usr/share/kicad/library/Memory_Flash.lib</uri>
+    </library>
+    <library logical="Sensor_Temperature">
+      <uri>/usr/share/kicad/library/Sensor_Temperature.lib</uri>
+    </library>
+  </libraries>
+  <nets>
+    <net code="1" name="GND">
+      <node ref="U1" pin="7"/>
+      <node ref="C1" pin="2"/>
+      <node ref="U1" pin="5"/>
+      <node ref="J2" pin="4"/>
+      <node ref="J2" pin="3"/>
+      <node ref="U3" pin="9"/>
+      <node ref="U3" pin="4"/>
+      <node ref="U1" pin="6"/>
+      <node ref="C2" pin="2"/>
+      <node ref="U1" pin="4"/>
+      <node ref="C3" pin="2"/>
+    </net>
+    <net code="2" name="Net-(U1-Pad3)">
+      <node ref="U1" pin="3"/>
+    </net>
+    <net code="3" name="I2C0_SCL">
+      <node ref="U1" pin="2"/>
+      <node ref="J2" pin="6"/>
+      <node ref="R2" pin="1"/>
+    </net>
+    <net code="4" name="I2C0_SDA">
+      <node ref="J2" pin="5"/>
+      <node ref="U1" pin="1"/>
+      <node ref="R1" pin="1"/>
+    </net>
+    <net code="5" name="+3V3">
+      <node ref="R1" pin="2"/>
+      <node ref="R2" pin="2"/>
+      <node ref="J2" pin="1"/>
+      <node ref="U3" pin="8"/>
+      <node ref="J2" pin="2"/>
+      <node ref="R3" pin="2"/>
+      <node ref="R4" pin="2"/>
+      <node ref="R5" pin="2"/>
+      <node ref="C2" pin="1"/>
+      <node ref="U1" pin="8"/>
+      <node ref="C3" pin="1"/>
+      <node ref="C1" pin="1"/>
+    </net>
+    <net code="6" name="FLASH_SIO1">
+      <node ref="U3" pin="2"/>
+      <node ref="J2" pin="9"/>
+    </net>
+    <net code="7" name="FLASH_SIO3">
+      <node ref="U3" pin="7"/>
+      <node ref="J2" pin="8"/>
+      <node ref="R5" pin="1"/>
+    </net>
+    <net code="8" name="FLASH_CSn">
+      <node ref="U3" pin="1"/>
+      <node ref="R3" pin="1"/>
+      <node ref="J2" pin="7"/>
+    </net>
+    <net code="9" name="FLASH_SIO0">
+      <node ref="J2" pin="12"/>
+      <node ref="U3" pin="5"/>
+    </net>
+    <net code="10" name="FLASH_SIO2">
+      <node ref="U3" pin="3"/>
+      <node ref="J2" pin="11"/>
+      <node ref="R4" pin="1"/>
+    </net>
+    <net code="11" name="FLASH_SCLK">
+      <node ref="U3" pin="6"/>
+      <node ref="J2" pin="10"/>
+    </net>
+  </nets>
+</export>
