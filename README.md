@@ -15,6 +15,8 @@ Common stuff for [SBusFPGA](https://github.com/rdolbeau/SBusFPGA), [NuBusFPGA](h
 
 * FLASH+TEMP-PMOD: a PMod-like module with a SPI NOR Flash device & a I2C temperature sensor. Can be used with the SBusFPGA were both feature are supported. On NuBusFPGA currently the I2C bus is not supported in MacOS. The Flash is currently usable to store the ROM for the device (Forth code for SBusFPGA, Declaration ROM for NuBusFPGA). The temperature sensor is supported in NetBSD 9.0 in SBusFPGA.
 
+* PI2PMODSPI: a simple PCB to route the SPI bus from a Raspberry Pi to the appropriate pins on the FLASH+TEMP-PMOD above. Makes it easier to program the Flash NOR in the PMod with 'flashrom' on a Raspberry Pi.
+
 ## Not included:
 
 * Other framebuffers: SBusFPGA has other framebuffers (1-bit bw2, 8-bit cg3, accelerated 8-bit cg6) that 'emaulate' (in a limited way) vintage framebuffers. SBus-specific.
