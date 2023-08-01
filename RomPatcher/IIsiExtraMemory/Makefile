@@ -26,7 +26,7 @@ IIsi.ROM: ../IIsiRemoveChecksumCheck/IIsi.ROM rompatch.raw input.txt
 
 linker.ld: input.txt rompatch.s
 	${GENLINK} -d $< >| $@
-	$(shell for X in `grep .section rompatch.s | awk '{ print $$2 }' `; do grep -q $$X linker.ld || echo " $$X has no entry in linker.ld" && /bin/false; done)
+	echo $(shell for X in `grep .section rompatch.s | awk '{ print $$2 }' `; do grep -q $$X linker.ld || echo " $$X has no entry in linker.ld" && /bin/false; done)
 
 rompatch.o: rompatch.s
 	${AS} ${ARCHFLAGS} $< -o $@ -a > rompatch.l
@@ -38,4 +38,4 @@ rompatch.raw: rompatch.elf
 	${OBJCOPY} $^ $@ --input-target=elf32-m68k --output-target=binary
 
 clean:
-	rm -f res.inc ${CSRC_ASM} *.o rompatch.srec rompatch.raw rompatch.dir rompatch.l VidRom*.s
+	rm -f res.inc ${CSRC_ASM} *.o rompatch.srec rompatch.raw rompatch.dir rompatch.l linker.ld rompatch.elf
