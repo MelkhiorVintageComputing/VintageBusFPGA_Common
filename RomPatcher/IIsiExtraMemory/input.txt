@@ -1,0 +1,3 @@
+0x00396e, 32, raminfo
+0x003cc4, 316, gary
+0x0419e8, 20, findinfopatch
