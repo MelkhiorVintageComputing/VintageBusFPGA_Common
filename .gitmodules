@@ -1,0 +1,3 @@
+[submodule "DeclROM/ns816-declrom"]
+	path = DeclROM/ns816-declrom
+	url = https://github.com/jaoswald/ns816-declrom
