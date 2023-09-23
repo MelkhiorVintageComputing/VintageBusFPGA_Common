@@ -3,14 +3,14 @@
 #define CONFIG_CSR_DATA_WIDTH 32
 
 #if defined(NUBUSFPGA)
-#include "../nubusfpga_csr_ddrphy.h"
-#include "../nubusfpga_csr_sdram.h"
+#include "../../nubusfpga_csr_ddrphy.h"
+#include "../../nubusfpga_csr_sdram.h"
 #elif defined(IISIFPGA)
-#include "../IIsifpga_csr_ddrphy.h"
-#include "../IIsifpga_csr_sdram.h"
+#include "../../iisifpga_csr_ddrphy.h"
+#include "../../iisifpga_csr_sdram.h"
 #elif defined(QUADRAFPGA)
-#include "../quadrafpga_csr_ddrphy.h"
-#include "../quadrafpga_csr_sdram.h"
+#include "../../quadrafpga_csr_ddrphy.h"
+#include "../../quadrafpga_csr_sdram.h"
 #else
 #error "no board defined"
 #endif
