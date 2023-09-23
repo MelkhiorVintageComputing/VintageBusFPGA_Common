@@ -31,7 +31,7 @@ class ExchangeWithMem(Module, AutoCSR):
 
         data_width = burst_size * 4
         data_width_bits = burst_size * 32
-        blk_addr_width = 32 - log2_int(data_width) # 27 for burst_size == 8
+        blk_addr_width = 32 - log2_int(data_width) # 27 for burst_size == 8; 28 for burst_size == 4
 
         assert(len(self.dram_native_r.rdata.data) == data_width_bits)
         assert(len(self.dram_native_r.wdata.data) == data_width_bits)
@@ -61,9 +61,7 @@ class ExchangeWithMem(Module, AutoCSR):
 
         max_block_bits=16
 
-        # CSRConstant do not seem to appear in the CSR Map, but they need to be accessible to the OS driver
-        #self.blk_size = CSRConstant(value=data_width) # report the block size to the SW layer
-        #self.blk_base = CSRConstant(value=soc.wb_mem_map["main_ram"] >> log2_int(data_width)) # report where the blk starts
+        # CSRs
         self.blk_size = CSRStatus(32) # report the block size to the SW layer
         self.blk_base = CSRStatus(32) # report where the blk starts
         self.mem_size = CSRStatus(32) # report how much memory we have
@@ -77,7 +75,6 @@ class ExchangeWithMem(Module, AutoCSR):
         ])
         self.blk_addr =   CSRStorage(32, description = "SDRAM Block address to read/write from Wishbone memory (block of size {})".format(data_width))
         self.dma_addr =   CSRStorage(32, description = "Host Base address where to write/read data (i.e. SPARC Virtual addr)")
-        #self.blk_cnt =    CSRStorage(32, write_from_dev=True, description = "How many blk to read/write (max 2^{}-1); bit 31 is RD".format(max_block_bits), reset = 0)
         self.blk_cnt = CSRStorage(write_from_dev=True, fields = [CSRField("blk_cnt", max_block_bits, description = "How many blk to read/write (max 2^{}-1)".format(max_block_bits)),
                                                                  CSRField("rsvd", 32 - (max_block_bits + 1), description = "Reserved"),
                                                                  CSRField("rd_wr", 1, description = "Read/Write selector"),
@@ -125,7 +122,6 @@ class ExchangeWithMem(Module, AutoCSR):
                             fromsbus_req_fifo_readable_in_sys_cnt.eq(fromsbus_req_fifo_readable_in_sys_cnt - 1)
                          )
                      )
-        #self.comb += self.dma_status.fields.has_requests.eq(fromsbus_req_fifo_readable_in_sys) # we still have outstanding requests
         self.comb += self.dma_status.fields.has_requests.eq(fromsbus_req_fifo_readable_in_sys | (fromsbus_req_fifo_readable_in_sys_cnt != 0)) # we still have outstanding requests, or had recently
         
         self.submodules.tosbus_fifo_readable_sync = BusSynchronizer(width = 1, idomain = clock_domain, odomain = "sys")
