@@ -198,9 +198,12 @@ _SDCardDrvrDir:
 	
 /* ////////////////////////////////////////////// HDMI AUDIO */
 	.section .text.begin
+	.include "goblin_param.inc"
 	ALIGN 2
 _sRsrc_HDMIAudio:	
 	OSLstEntry  sRsrcType,_HDMIAudioType      /*  video type descriptor */
+	OSLstEntry  0xd0,_HDMIAudioInfo
+	/* no driver */
     .long EndOfList               /*  end of list */
 
 	ALIGN 2
@@ -208,9 +211,15 @@ _HDMIAudioType:
     .short        catProto               /*      <Category> */
     .short        typeAudio /* custom */                 /*      <Type> */
     .short        drSwApple                /*      <DrvrSw> */
-    .short        DrHwNuBusFPGAAudio             /*      <DrvrHw> */
+	.short        DrHwNuBusFPGAAudio             /*      <DrvrHw> */
+
+	ALIGN 2
+_HDMIAudioInfo:	
+	.long csr_goblin_base /* where to find the CSR */
+	.long goblin_audiobuffer_offset
+	.long goblin_audiobuffer_size
 	
-	
+/* ////////////////////////////////////////////// DECLARION ROM */
     /* Declaration ROM directory at end */
        .section .romblock
        ALIGN 2

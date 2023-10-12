@@ -23,6 +23,7 @@ ifeq (${TARGET},QUADRAFPGA)
 endif
 
 CFLAGS+=${FEATURES}
+HOSTCFLAGS+=${FEATURES}
 
 NS816DECLROMDIR=./ns816-declrom
 NUBUS_CHECKSUM=${NS816DECLROMDIR}/nubus_checksum
@@ -56,7 +57,7 @@ ${GEN_ASM}: gen_mode
 $(NUBUS_CHECKSUM): ${NS816DECLROMDIR}/nubus_checksum.cc ${NS816DECLROMDIR}/nubus_crc.cc
 	g++ -std=c++11 $^ -lglog -lgflags -labsl_strings -o $@
 
-vid_decl_rom.o: vid_decl_rom.s NuBusFPGADrvr.s NuBusFPGARAMDskDrvr.s ${APPLEINCS} DepVideo.inc ${GEN_ASM}
+vid_decl_rom.o: vid_decl_rom.s NuBusFPGADrvr.s NuBusFPGARAMDskDrvr.s ${APPLEINCS} DepVideo.inc ${GEN_ASM} goblin_param.inc
 	rm -f res.inc
 	echo -e "HRES=${HRES}\nVRES=${VRES}\n" | tee res.inc
 	${AS} ${ARCHFLAGS} -I${NS816DECLROMDIR} $< -o $@ -a > vid_decl_rom.l
@@ -82,8 +83,11 @@ vid_decl_rom.bin: vid_decl_rom.raw $(NUBUS_CHECKSUM)
 	${NUBUS_CHECKSUM} --input_file $< --output_file $@ --output_size 32768
 	dd if=dump.cpr of=vid_decl_rom.bin bs=1 conv=notrunc
 
+goblin_param.inc: ../../csr.csv
+	./gen_goblin_audio_param.sh
+
 clean:
-	rm -f res.inc ${CSRC_ASM} *.o vid_decl_rom.srec vid_decl_rom.raw vid_decl_rom.dir vid_decl_rom.l VidRom*.s
+	rm -f res.inc ${CSRC_ASM} *.o vid_decl_rom.srec vid_decl_rom.raw vid_decl_rom.dir vid_decl_rom.l VidRom*.s gen_mode goblin_param.inc
 
 append_romdir: append_romdir.c
 	${HOSTCC} $< -o $@
