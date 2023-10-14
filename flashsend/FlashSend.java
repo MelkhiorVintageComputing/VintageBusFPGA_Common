@@ -224,6 +224,7 @@ class FlashSend extends Ztex1v1 {
 				System.out.println("Primary Flash enabled: " + ztex.flashEnabled());
 				System.out.println("Primary Flash sector size: " + ztex.toHumanStr(ztex.flashSectorSize())+" Bytes");
 				System.out.println("Primary Flash size: " + ztex.toHumanStr(ztex.flashSize())+" Bytes");
+				System.out.println("Primary Flash first free sector: " + ztex.flashFirstFreeSector());
 			} else {
 				throw new ParameterException("Currently write only to Primary Flash, which is not available.");
 			}
@@ -237,10 +238,15 @@ class FlashSend extends Ztex1v1 {
 			if (sector < 0) {
 				throw new ParameterException("Sector to start must be specified as a positive integer, it is recommened to be higher than the reserved area.");
 			}
+			if (doWrite & (sector < ztex.flashFirstFreeSector())) {
+				throw new ParameterException("Sector to start writing at should be higher than the reserved area, probably (" + ztex.flashFirstFreeSector() + ")");
+			}
 	    
 			if (filename == null) {
 				throw new ParameterException("Non-existent filename: " + (filename == null ? "(null)": "filename" ));
 			}
+
+			ztex.resetFpga();
 
 			if (doWrite) {
 				File f = new File(filename);
