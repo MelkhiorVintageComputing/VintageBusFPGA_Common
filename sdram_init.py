@@ -94,12 +94,12 @@ class DDR3Addr(WishboneMaster):
         for module in range(2):
             r += [_WRITE_CMD, self.ddrphy_dly_sel, 1<<module ]
             r += [_WRITE_CMD, self.ddrphy_rdly_dq_bitslip_rst, 1]
-        for i in range(bitslip):
-            r += [_WRITE_CMD, self.ddrphy_rdly_dq_bitslip, 1]
-            r += [_WRITE_CMD, self.ddrphy_rdly_dq_rst, 1]
-        for i in range(delay):
-            r += [_WRITE_CMD, self.ddrphy_rdly_dq_inc, 1]
-            r += [_WRITE_CMD, self.ddrphy_dly_sel, 0 ]
+            for i in range(bitslip):
+                r += [_WRITE_CMD, self.ddrphy_rdly_dq_bitslip, 1]
+                r += [_WRITE_CMD, self.ddrphy_rdly_dq_rst, 1]
+            for i in range(delay):
+                r += [_WRITE_CMD, self.ddrphy_rdly_dq_inc, 1]
+                r += [_WRITE_CMD, self.ddrphy_dly_sel, 0 ]
         return r
 
     def startfb(self):
