@@ -10,6 +10,11 @@ from litex.soc.integration.soc_core import *
 
 from litedram.modules import MT41J128M16
 from litedram.phy import s7ddrphy
+
+from litex.soc.cores.video import VideoS7HDMIPHY
+from litex.soc.cores.video import VideoVGAPHY
+from litex.soc.cores.video import video_timings
+from VintageBusFPGA_Common.goblin_accel import *
         
 class MacPeriphSoC(SoCCore):
     # Add SDCard -----------------------------------------------------------------------------------
@@ -113,7 +118,7 @@ class MacPeriphSoC(SoCCore):
     def mac_add_declrom(self, version, flash, config_flash):
         if ((not flash) and (not config_flash)): # so ROM is builtin
             rom_file = "rom_{}.bin".format(version.replace(".", "_"))
-            rom_data = soc_core.get_mem_data(filename_or_regions=rom_file, endianness="little") # "big"
+            rom_data = get_mem_data(filename_or_regions=rom_file, endianness="little") # "big"
             self.add_ram("rom", origin=self.mem_map["rom"], size=2**15, contents=rom_data, mode="r") ## 32 KiB, must match mmap
             print("$$$$$ ROM must be pre-existing for integration in the bitstream, double-check the ROM file is current for this configuration $$$$$\n");
 
@@ -167,3 +172,57 @@ class MacPeriphSoC(SoCCore):
                                                     bitslip = 1, delay = 25, # CHECKME / FIXME: parameters
                                                     sdram_dfii_base = sdram_dfii_base, ddrphy_base = ddrphy_base)
             self.bus.add_master(name="DDR3Init", master=self.sdram_init.bus)
+
+    def mac_add_goblin_prelim(self):
+        base_fb = self.wb_mem_map["main_ram"] + self.avail_sdram - 1048576 # placeholder
+        
+        if (self.avail_sdram >= self.goblin_fb_size):
+            self.avail_sdram = self.avail_sdram - self.goblin_fb_size
+            base_fb = self.wb_mem_map["main_ram"] + self.avail_sdram
+            self.wb_mem_map["video_framebuffer"] = base_fb
+            print(f"FrameBuffer base_fb @ {base_fb:x}")
+        else:
+            print("***** ERROR ***** Can't have a FrameBuffer without main ram\n")
+            assert(False)
+
+    def mac_add_goblin(self, use_goblin_alt = True, hdmi = True, goblin_res = None, goblin_irq = None, audio_irq = None):
+        
+        if ((not use_goblin_alt) or (not hdmi)):
+            from VintageBusFPGA_Common.goblin_fb import goblin_rounded_size, Goblin
+        else:
+            from VintageBusFPGA_Common.goblin_alt_fb import goblin_rounded_size, GoblinAlt
+                
+        if (not hdmi):
+            self.submodules.videophy = VideoVGAPHY(platform.request("vga"), clock_domain="vga")
+            self.submodules.goblin = Goblin(soc=self, phy=self.videophy, timings=goblin_res, clock_domain="vga", irq_line=goblin_irq, endian="little", hwcursor=False, truecolor=True) # clock_domain for the VGA side, goblin is running in cd_sys
+        else:
+            if (not use_goblin_alt):
+                self.submodules.videophy = VideoS7HDMIPHY(platform.request("hdmi"), clock_domain="hdmi")
+                self.submodules.goblin = Goblin(soc=self, phy=self.videophy, timings=goblin_res, clock_domain="hdmi", irq_line=goblin_irq, endian="little", hwcursor=False, truecolor=True) # clock_domain for the HDMI side, goblin is running in cd_sys
+            else:
+                # GoblinAlt contains its own PHY
+                self.submodules.goblin = GoblinAlt(soc=self, timings=goblin_res, clock_domain="hdmi", irq_line=goblin_irq, endian="little", hwcursor=False, truecolor=True)
+                # it also has a bus master so that the audio bit can fetch data from Wishbone
+                self.bus.add_master(name="GoblinAudio", master=self.goblin.goblin_audio.busmaster)
+                self.add_ram("goblin_audio_ram", origin=self.mem_map["goblin_audio_ram"], size=2**13, mode="rw") # 8 KiB buffer, planned as 2*4KiB
+                self.comb += [ audio_irq.eq(self.goblin.goblin_audio.irq), ]
+                    
+        self.bus.add_slave("goblin_bt", self.goblin.bus, SoCRegion(origin=self.mem_map.get("goblin_bt", None), size=0x1000, cached=False))
+        #pad_user_led_0 = platform.request("user_led", 0)
+        #pad_user_led_1 = platform.request("user_led", 1)
+        #self.comb += pad_user_led_0.eq(self.goblin.video_framebuffer.underflow)
+        #self.comb += pad_user_led_1.eq(self.goblin.video_framebuffer.fb_dma.enable)
+        if (True):
+            self.submodules.goblin_accel = GoblinAccelNuBus(soc = self)
+            self.bus.add_slave("goblin_accel", self.goblin_accel.bus, SoCRegion(origin=self.mem_map.get("goblin_accel", None), size=0x1000, cached=False))
+            self.bus.add_master(name="goblin_accel_r5_i", master=self.goblin_accel.ibus)
+            self.bus.add_master(name="goblin_accel_r5_d", master=self.goblin_accel.dbus)
+            goblin_rom_file = "VintageBusFPGA_Common/blit_goblin_nubus.raw"
+            goblin_rom_data = get_mem_data(filename_or_regions=goblin_rom_file, endianness="little")
+            goblin_rom_len = 4*len(goblin_rom_data);
+            rounded_goblin_rom_len = 2**log2_int(goblin_rom_len, False)
+            print(f"GOBLIN ROM is {goblin_rom_len} bytes, using {rounded_goblin_rom_len}")
+            assert(rounded_goblin_rom_len <= 2**16)
+            self.add_ram("goblin_accel_rom", origin=self.mem_map["goblin_accel_rom"], size=rounded_goblin_rom_len, contents=goblin_rom_data, mode="r")
+            self.add_ram("goblin_accel_ram", origin=self.mem_map["goblin_accel_ram"], size=2**12, mode="rw")
+        
