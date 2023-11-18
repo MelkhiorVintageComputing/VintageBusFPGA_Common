@@ -109,7 +109,7 @@ def startfb():
 class DDR3Addr(WishboneMaster):
     def __init__(self, sdram_dfii_base, ddrphy_base):
         # /!\ keep up to date with csr /!\
-	self.sdram_dfii_base = sdram_dfii_base
+        self.sdram_dfii_base = sdram_dfii_base
         self.sdram_dfii_control =           	self.sdram_dfii_base + 0x000
         self.sdram_dfii_pi0_command  =      	self.sdram_dfii_base + 0x004
         self.sdram_dfii_pi0_command_issue = 	self.sdram_dfii_base + 0x008
