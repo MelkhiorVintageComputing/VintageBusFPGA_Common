@@ -102,7 +102,7 @@ class DDR3Addr(WishboneMaster):
             r += [_WRITE_CMD, self.ddrphy_dly_sel, 0 ]
         return r
 
-    def startfb():
+    def startfb(self):
         r = []
         r += [_WRITE_CMD, 0xf0900008, 0x01000000] # FIXME: hardwired for now
         return r
