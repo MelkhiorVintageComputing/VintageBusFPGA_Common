@@ -7,6 +7,9 @@ import litex
 from litex.build.generic_platform import *
 from litex.soc.integration.soc import *
 from litex.soc.integration.soc_core import *
+
+from litedram.modules import MT41J128M16
+from litedram.phy import s7ddrphy
         
 class MacPeriphSoC(SoCCore):
     # Add SDCard -----------------------------------------------------------------------------------
@@ -107,7 +110,7 @@ class MacPeriphSoC(SoCCore):
             #"END OF SLOT SPACE": 0xF0FFFFFF,
         }
 
-    def add_rom(self, version, flash, config_flash):
+    def mac_add_declrom(self, version, flash, config_flash):
         if ((not flash) and (not config_flash)): # so ROM is builtin
             rom_file = "rom_{}.bin".format(version.replace(".", "_"))
             rom_data = soc_core.get_mem_data(filename_or_regions=rom_file, endianness="little") # "big"
@@ -146,3 +149,21 @@ class MacPeriphSoC(SoCCore):
                 # ignore
             print(f"$$$$$ ROM must be put in the config Flash at sector {sector} $$$$$\n");
         
+    def mac_add_sdram(self, hwinit = False, sdram_dfii_base = None, ddrphy_base = None):
+        self.submodules.ddrphy = s7ddrphy.A7DDRPHY(self.platform.request("ddram"),
+                                                   memtype        = "DDR3",
+                                                   nphases        = 4,
+                                                   sys_clk_freq   = self.sys_clk_freq)
+        self.add_sdram("sdram",
+                       phy           = self.ddrphy,
+                       module        = MT41J128M16(self.sys_clk_freq, "1:4"),
+                       l2_cache_size = 0,
+        )
+        self.avail_sdram = self.bus.regions["main_ram"].size
+
+        if (hwinit):
+            from sdram_init import DDR3FBInit
+            self.submodules.sdram_init = DDR3FBInit(sys_clk_freq = self.sys_clk_freq,
+                                                    bitslip = 1, delay = 25, # CHECKME / FIXME: parameters
+                                                    sdram_dfii_base = sdram_dfii_base, ddrphy_base = ddrphy_base)
+            self.bus.add_master(name="DDR3Init", master=self.sdram_init.bus)
