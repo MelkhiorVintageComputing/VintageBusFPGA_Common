@@ -162,7 +162,7 @@ class MacPeriphSoC(SoCCore):
         self.avail_sdram = self.bus.regions["main_ram"].size
 
         if (hwinit):
-            from sdram_init import DDR3FBInit
+            from VintageBusFPGA_Common.sdram_init import DDR3FBInit
             self.submodules.sdram_init = DDR3FBInit(sys_clk_freq = self.sys_clk_freq,
                                                     bitslip = 1, delay = 25, # CHECKME / FIXME: parameters
                                                     sdram_dfii_base = sdram_dfii_base, ddrphy_base = ddrphy_base)
