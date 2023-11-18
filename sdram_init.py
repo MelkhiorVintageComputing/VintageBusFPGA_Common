@@ -131,7 +131,7 @@ class DDR3Addr(WishboneMaster):
 
 class DDR3Init(DDR3Addr):
     def __init__(self, sys_clk_freq, bitslip, delay, sdram_dfii_base, ddrphy_base):
-        DDR3Addr.__init__(self, sdram_dfii_base = None, ddrphy_base = None)
+        DDR3Addr.__init__(self, sdram_dfii_base = sdram_dfii_base, ddrphy_base = ddrphy_base)
         WishboneMaster.__init__(self,
             ddr3_init_instructions(sys_clk_freq) +
             ddr3_config_instructions(bitslip, delay) +
@@ -139,7 +139,7 @@ class DDR3Init(DDR3Addr):
 
 class DDR3FBInit(DDR3Addr):
     def __init__(self, sys_clk_freq, bitslip, delay, sdram_dfii_base, ddrphy_base):
-        DDR3Addr.__init__(self, sdram_dfii_base = None, ddrphy_base = None)
+        DDR3Addr.__init__(self, sdram_dfii_base = sdram_dfii_base, ddrphy_base = ddrphy_base)
         WishboneMaster.__init__(self,
             ddr3_init_instructions(sys_clk_freq) +
             ddr3_config_instructions(bitslip, delay) +
