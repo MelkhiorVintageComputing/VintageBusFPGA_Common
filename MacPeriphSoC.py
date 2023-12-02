@@ -115,7 +115,7 @@ class MacPeriphSoC(SoCCore):
             #"END OF SLOT SPACE": 0xF0FFFFFF,
         }
 
-    def mac_add_declrom(self, version, flash, config_flash):
+    def mac_add_declrom(self, version, flash, config_flash, sector = 40):
         if ((not flash) and (not config_flash)): # so ROM is builtin
             rom_file = "rom_{}.bin".format(version.replace(".", "_"))
             rom_data = get_mem_data(filename_or_regions=rom_file, endianness="little") # "big"
@@ -134,7 +134,6 @@ class MacPeriphSoC(SoCCore):
 
             
         if (config_flash):
-            sector = 40
             from litespi.modules.generated_modules import S25FL128S
             from litespi.opcodes import SpiNorFlashOpCodes as Codes
             self.add_spi_flash(name="config_spiflash",

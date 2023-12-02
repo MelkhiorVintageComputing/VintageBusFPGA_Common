@@ -31,7 +31,7 @@ class Ziscreen(Module, AutoCSR):
         self.submodules.fsm = fsm = FSM(reset_state="Reset")
 
 
-        if (True):
+        if (False):
             #saw_ongoing = Signal()
             #saw_readable= Signal()
             #self.sync += [
