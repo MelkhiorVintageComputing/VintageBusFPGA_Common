@@ -79,6 +79,7 @@ class GoblinAudio(Module, AutoCSR):
         self.comb += self.irqstatus.fields.irq.eq(~self.irq) # self.irq active low
 
         # basic 44.1 KHz clock based on system clock
+        # FIXME: what if this should be derived from the pixel clock ???
         audio_max = int((soc.sys_clk_freq / audio_clk_freq) + 0.5)
         audio_max_bits = log2_int(audio_max, False)
         audio_counter = Signal(audio_max_bits)

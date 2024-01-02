@@ -192,11 +192,11 @@ class MacPeriphSoC(SoCCore):
             from VintageBusFPGA_Common.goblin_alt_fb import goblin_rounded_size, GoblinAlt
                 
         if (not hdmi):
-            self.submodules.videophy = VideoVGAPHY(platform.request("vga"), clock_domain="vga")
+            self.submodules.videophy = VideoVGAPHY(self.platform.request("vga"), clock_domain="vga")
             self.submodules.goblin = Goblin(soc=self, phy=self.videophy, timings=goblin_res, clock_domain="vga", irq_line=goblin_irq, endian="little", hwcursor=False, truecolor=True) # clock_domain for the VGA side, goblin is running in cd_sys
         else:
             if (not use_goblin_alt):
-                self.submodules.videophy = VideoS7HDMIPHY(platform.request("hdmi"), clock_domain="hdmi")
+                self.submodules.videophy = VideoS7HDMIPHY(self.platform.request("hdmi"), clock_domain="hdmi")
                 self.submodules.goblin = Goblin(soc=self, phy=self.videophy, timings=goblin_res, clock_domain="hdmi", irq_line=goblin_irq, endian="little", hwcursor=False, truecolor=True) # clock_domain for the HDMI side, goblin is running in cd_sys
             else:
                 # GoblinAlt contains its own PHY
