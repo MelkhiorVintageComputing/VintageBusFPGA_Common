@@ -27,9 +27,9 @@ OSErr changeIRQ(AuxDCEPtr dce, char en, OSErr err) {
 	   	   if (SIntInstall(dStore->siqel, dce->dCtlSlot)) {
 	   		   return err;
 	   	   }
-		   write_reg(dce, GOBOFB_DEBUG, 0x88888888);
-		   write_reg(dce, GOBOFB_DEBUG, dStore->siqel);
-		   write_reg(dce, GOBOFB_DEBUG, dStore->siqel->sqLink);
+		   /* write_reg(dce, GOBOFB_DEBUG, 0x88888888); */
+		   /* write_reg(dce, GOBOFB_DEBUG, dStore->siqel); */
+		   /* write_reg(dce, GOBOFB_DEBUG, dStore->siqel->sqLink); */
 	   } else {
 	   	   if (SIntRemove(dStore->siqel, dce->dCtlSlot)) {
 	   		   return err;
@@ -130,12 +130,12 @@ OSErr cNuBusFPGACtl(CntrlParamPtr pb, /* DCtlPtr */ AuxDCEPtr dce)
 		  SwapMMUMode ( &busMode );
 		  if (csStart < 0) {
 			  for (i = 0 ; i <= csCount ; i++) {
-				  unsigned char idx = ((*vdentry)->csTable[i].value & 0x0FF);
+				  unsigned short idx = ((*vdentry)->csTable[i].value & 0x0FF);
 				  /* dStore->shadowClut[idx*3+0] = (*vdentry)->csTable[i].rgb.red; */
 				  /* dStore->shadowClut[idx*3+1] = (*vdentry)->csTable[i].rgb.green; */
 				  /* dStore->shadowClut[idx*3+2] = (*vdentry)->csTable[i].rgb.blue; */
 				  
-				  write_reg(dce, GOBOFB_LUT_ADDR, 3 * idx);
+				  write_reg(dce, GOBOFB_LUT_ADDR, idx);
 				  write_reg(dce, GOBOFB_LUT, dStore->gamma.gFormulaData[0][(*vdentry)->csTable[i].rgb.red>>8 & 0xFF]);
 				  write_reg(dce, GOBOFB_LUT, dStore->gamma.gFormulaData[1][(*vdentry)->csTable[i].rgb.green>>8 & 0xFF]);
 				  write_reg(dce, GOBOFB_LUT, dStore->gamma.gFormulaData[2][(*vdentry)->csTable[i].rgb.blue>>8 & 0xFF]);
@@ -144,7 +144,7 @@ OSErr cNuBusFPGACtl(CntrlParamPtr pb, /* DCtlPtr */ AuxDCEPtr dce)
 				  /* write_reg(dce, GOBOFB_LUT, (*vdentry)->csTable[i].rgb.blue); */
 			  }
 		  } else {
-			  write_reg(dce, GOBOFB_LUT_ADDR, 3 * (csStart & 0xFF));
+			  write_reg(dce, GOBOFB_LUT_ADDR, (csStart & 0xFF));
 			  for (i = 0 ; i <= csCount ; i++) {
 				  /* dStore->shadowClut[(i+csStart)*3+0] = (*vdentry)->csTable[i].rgb.red; */
 				  /* dStore->shadowClut[(i+csStart)*3+1] = (*vdentry)->csTable[i].rgb.green; */
