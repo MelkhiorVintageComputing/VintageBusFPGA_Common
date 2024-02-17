@@ -9,6 +9,7 @@ from litex.soc.integration.soc import *
 from litex.soc.integration.soc_core import *
 
 from litedram.modules import MT41J128M16
+from litedram.modules import IS43TR8512B
 from litedram.phy import s7ddrphy
 
 from litex.soc.cores.video import VideoS7HDMIPHY
@@ -135,42 +136,65 @@ class MacPeriphSoC(SoCCore):
             
         if (config_flash):
             from litespi.modules.generated_modules import S25FL128S
+            from litespi.modules.generated_modules import S25FL256S
             from litespi.opcodes import SpiNorFlashOpCodes as Codes
-            self.add_spi_flash(name="config_spiflash",
-                               mode="1x",
-                               clk_freq = self.sys_clk_freq/4, # Fixme; PHY freq ?
-                               module=S25FL128S(Codes.READ_1_1_1),
-                               region_size = 0x00008000, # 32 KiB,
-                               region_offset = (sector * 65536),
-                               with_mmap=True, with_master=False)
-            try:
-                # get and set the signal if we're on 2.12
-                fx2_sloe = self.platform.request("fx2_sloe", 0)
-                self.comb += [ fx2_sloe.eq(1), ] # force the FX2 side of the GPIF/FIFO interface to read, so we can access the flash
-            except:
-                # if the signal is not defined, we're on a 2.13 and don't need it
-                self.comb += [ ]
-                # ignore
+            if ((version == "V1.0") or (version == "V1.2")): # ZTex
+                self.add_spi_flash(name="config_spiflash",
+                                   mode="1x",
+                                   clk_freq = self.sys_clk_freq/4, # checkme; PHY freq ?
+                                   module=S25FL128S(Codes.READ_1_1_1),
+                                   region_size = 0x00008000, # 32 KiB,
+                                   region_offset = (sector * 65536),
+                                   with_mmap=True, with_master=False)
+                try:
+                    # get and set the signal if we're on 2.12
+                    fx2_sloe = self.platform.request("fx2_sloe", 0)
+                    self.comb += [ fx2_sloe.eq(1), ] # force the FX2 side of the GPIF/FIFO interface to read, so we can access the flash
+                except:
+                    # if the signal is not defined, we're on a 2.13 and don't need it
+                    self.comb += [ ]
+                    # ignore
+            elif (version == "V2.0"):
+                self.add_spi_flash(name="config_spiflash",
+                                   mode="4x",
+                                   clk_freq = self.sys_clk_freq/4, # CHECKME; PHY freq ?
+                                   module=S25FL256S(Codes.READ_1_1_1), # checkme
+                                   region_size = 0x00008000, # 32 KiB, 
+                                   region_offset = (sector * 65536), # CHECKME
+                                   with_mmap=True, with_master=False)
+            else:
+                assert(False)
             print(f"$$$$$ ROM must be put in the config Flash at sector {sector} $$$$$\n");
         
-    def mac_add_sdram(self, hwinit = False, sdram_dfii_base = None, ddrphy_base = None):
+    def mac_add_sdram(self, hwinit = False, sdram_dfii_base = None, ddrphy_base = None, version = "V1.0"):
         self.submodules.ddrphy = s7ddrphy.A7DDRPHY(self.platform.request("ddram"),
                                                    memtype        = "DDR3",
                                                    nphases        = 4,
                                                    sys_clk_freq   = self.sys_clk_freq)
-        self.add_sdram("sdram",
-                       phy           = self.ddrphy,
-                       module        = MT41J128M16(self.sys_clk_freq, "1:4"),
-                       l2_cache_size = 0,
-        )
+        if ((version == "V1.0") or (version == "V1_2")): # ZTex Boards
+            self.add_sdram("sdram",
+                           phy           = self.ddrphy,
+                           module        = MT41J128M16(self.sys_clk_freq, "1:4"),
+                           l2_cache_size = 0,
+            )
+        elif (version == "V2.0"): # TE0710 boards
+            self.add_sdram("sdram",
+                           phy           = self.ddrphy,
+                           module        = IS43TR8512B(self.sys_clk_freq, "1:4"), # TBD
+                           l2_cache_size = 0,
+            )
+            
         self.avail_sdram = self.bus.regions["main_ram"].size
 
         if (hwinit):
             from VintageBusFPGA_Common.sdram_init import DDR3FBInit
-            self.submodules.sdram_init = DDR3FBInit(sys_clk_freq = self.sys_clk_freq,
-                                                    bitslip = 1, delay = 25, # CHECKME / FIXME: parameters
-                                                    sdram_dfii_base = sdram_dfii_base, ddrphy_base = ddrphy_base)
-            self.bus.add_master(name="DDR3Init", master=self.sdram_init.bus)
+            if ((version == "V1.0") or (version == "V1.2")): # ZTex Boards
+                self.submodules.sdram_init = DDR3FBInit(sys_clk_freq = self.sys_clk_freq,
+                                                        bitslip = 1, delay = 25, # CHECKME / FIXME: parameters
+                                                        sdram_dfii_base = sdram_dfii_base, ddrphy_base = ddrphy_base)
+                self.bus.add_master(name="DDR3Init", master=self.sdram_init.bus)
+            else:
+                assert(False) # HW init TBC for TE0710 boards
 
     def mac_add_goblin_prelim(self):
         base_fb = self.wb_mem_map["main_ram"] + self.avail_sdram - 1048576 # placeholder

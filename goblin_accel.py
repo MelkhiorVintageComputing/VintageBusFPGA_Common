@@ -281,14 +281,14 @@ class GoblinAccel(Module): # AutoCSR ?
         # now connect the memory
 
         # memory port
-        port = soc.sdram.crossbar.get_port()
+        port = soc.sdram.crossbar.get_port(data_width=128) # force 128-bits; will be native for 16-bits wide DDR3
         assert(port.data_width == 128)
         self.submodules.wb2native = LiteDRAMWishbone2Native(
             wishbone     = dbus_mem,
             port         = port,
             base_address = soc.bus.regions["main_ram"].origin
         )
-
+        
         self.comb += vex_reset.eq(ResetSignal("sys") | local_reset)
         self.specials += Instance(self.get_netlist_name(),
                                   i_clk = ClockSignal("sys"),
