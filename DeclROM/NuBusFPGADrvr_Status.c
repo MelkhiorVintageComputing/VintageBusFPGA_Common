@@ -71,15 +71,15 @@ OSErr cNuBusFPGAStatus(CntrlParamPtr pb, /* DCtlPtr */ AuxDCEPtr dce)
    case cscGetPageCnt: /* 4 == cscGetPages */
 	   {
 		   VDPageInfo	*vPInfo = (VDPageInfo *)*(long *)pb->csParam;
-		  if ((vPInfo->csMode != kDepthMode1) &&
-			  (vPInfo->csMode != kDepthMode2) &&
-			  (vPInfo->csMode != kDepthMode3) &&
-			  (vPInfo->csMode != kDepthMode4) &&
-			  (vPInfo->csMode != kDepthMode5) &&
-			  (vPInfo->csMode != kDepthMode6)) {
-			  ret = paramErr;
-			  goto done;
-		  }
+			 if ((vPInfo->csMode != kDepthMode1) &&
+			     (vPInfo->csMode != kDepthMode2) &&
+			     (vPInfo->csMode != kDepthMode3) &&
+			     (vPInfo->csMode != kDepthMode4) &&
+			     (vPInfo->csMode != kDepthMode5) &&
+			     (vPInfo->csMode != kDepthMode6)) {
+			 	 ret = paramErr;
+				 goto done;
+		  	 }
 		  vPInfo->csPage = (vPInfo->csMode == kDepthMode5) ? 1 : 2;
 		  ret = noErr;
 	   }
@@ -252,25 +252,34 @@ OSErr cNuBusFPGAStatus(CntrlParamPtr pb, /* DCtlPtr */ AuxDCEPtr dce)
 				  }
 				  if (((UInt8)vdres->csPreviousDisplayModeID) == dStore->maxMode)
 					  vdres->csDisplayModeID = kDisplayModeIDNoMoreResolutions;
-				  else
+				  else {
+					  /* some of the odd numbered modes are missing */
 					  vdres->csDisplayModeID = ((UInt8)vdres->csPreviousDisplayModeID) + 1;
-				  vdres->csHorizontalPixels = dStore->hres[((UInt8)vdres->csDisplayModeID) - nativeVidMode];
-				  vdres->csVerticalLines = dStore->vres[((UInt8)vdres->csDisplayModeID) - nativeVidMode];
-				  vdres->csRefreshRate = 60 << 16; /* Fixed(Point) 16+16 */
-				  vdres->csMaxDepthMode = kDepthMode6;
+					  while ((dStore->hres[((UInt8)vdres->csDisplayModeID) - nativeVidMode] == 0) &&
+						 (((UInt8)vdres->csPreviousDisplayModeID) < dStore->maxMode))
+					  	  vdres->csDisplayModeID ++;
+				  }
+				  if (vdres->csDisplayModeID >= dStore->maxMode) {
+				    vdres->csDisplayModeID = kDisplayModeIDNoMoreResolutions;
+				  } else {
+				    vdres->csHorizontalPixels = dStore->hres[((UInt8)vdres->csDisplayModeID) - nativeVidMode];
+				    vdres->csVerticalLines = dStore->vres[((UInt8)vdres->csDisplayModeID) - nativeVidMode];
+				    vdres->csRefreshRate = (60 << 16) + (vdres->csDisplayModeID & 1); /* Fixed(Point) 16+16 */
+				    vdres->csMaxDepthMode = kDepthMode6;
+				  }
 				  break;
 			  case kDisplayModeIDFindFirstResolution:
 				  vdres->csDisplayModeID = nativeVidMode;
 				  vdres->csHorizontalPixels = dStore->hres[0];
 				  vdres->csVerticalLines = dStore->vres[0];
-				  vdres->csRefreshRate = 60 << 16; /* Fixed(Point) 16+16 */
+				  vdres->csRefreshRate = (60 << 16) + (vdres->csDisplayModeID & 1); /* Fixed(Point) 16+16 */
 				  vdres->csMaxDepthMode = kDepthMode6;
 				  break;
 			  case kDisplayModeIDCurrent:
 				  vdres->csDisplayModeID = dStore->curMode;
 				  vdres->csHorizontalPixels = dStore->hres[dStore->curMode - nativeVidMode];
 				  vdres->csVerticalLines = dStore->vres[dStore->curMode - nativeVidMode];
-				  vdres->csRefreshRate = 60 << 16; /* Fixed(Point) 16+16 */
+				  vdres->csRefreshRate = (60 << 16) + (vdres->csDisplayModeID & 1); /* Fixed(Point) 16+16 */
 				  vdres->csMaxDepthMode = kDepthMode6;
 				  break;
 			  }

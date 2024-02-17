@@ -4,3 +4,5 @@ blit_goblin.o
 blit_goblin.s
 blit_goblin_nubus.raw
 blit_goblin_sbus.raw
+**~
+DeclROM/vid_decl_rom.elf

@@ -21,7 +21,7 @@ __attribute__ ((section (".text.fbdriver"))) short fbIrq(const long sqParameter)
 	ret = 0;
 	irq = (*((volatile unsigned int*)(sqParameter+GOBOFB_BASE+GOBOFB_INTR_CLEAR)));
 	if (irq & 1) {
-		vblproto myVbl = *(vblproto**)0x0d28;
+		vblproto myVbl = *(vblproto*)0x0d28;
 		*((volatile unsigned int*)(sqParameter+GOBOFB_BASE+GOBOFB_INTR_CLEAR)) = 0;
 		myVbl((sqParameter>>24)&0xf); // cleaner to use dStore->slot ? but require more code...
 		ret = 1;
@@ -88,7 +88,7 @@ OSErr cNuBusFPGAOpen(IOParamPtr pb, /* DCtlPtr */ AuxDCEPtr dce)
 			/* ... from ~mac68k, you need option "-mpcrel", and it works */
 			/* SlotIntServiceProcPtr sqAddr; */
 			/* asm("lea %%pc@(fbIrq),%0\n" : "=a"(sqAddr)); */
-			siqel->sqAddr = fbIrq;
+			siqel->sqAddr = (void (*)())fbIrq;
 			/* siqel->sqParm = (long)dce; */
 			siqel->sqParm = (long)dce->dCtlDevBase;
 			dStore->siqel = siqel;
@@ -115,7 +115,7 @@ OSErr cNuBusFPGAOpen(IOParamPtr pb, /* DCtlPtr */ AuxDCEPtr dce)
 				while ((err == noErr) &&
 					   (spb.spSlot == dce->dCtlSlot) &&
 					   (((UInt8)spb.spID) > (UInt8)0x80) &&
-					   (((UInt8)spb.spID) < (UInt8)0x90)) {
+					   (((UInt8)spb.spID) < (UInt8)0xA0)) {
 					/* write_reg(dce, GOBOFB_DEBUG, 0xBEEF0020); */
 					/* write_reg(dce, GOBOFB_DEBUG, spb.spID); */
 					/* write_reg(dce, GOBOFB_DEBUG, err); */

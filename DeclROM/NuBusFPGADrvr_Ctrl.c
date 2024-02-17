@@ -366,6 +366,26 @@ OSErr cNuBusFPGACtl(CntrlParamPtr pb, /* DCtlPtr */ AuxDCEPtr dce)
   return ret;
 }
 
+#if defined(ENABLE_HDMI_ALT_CHANGE)
+#if defined(NUBUSFPGA)
+#include "../../nubusfpga_csr_goblin.h"
+#include "../../nubusfpga_csr_crg.h"
+#elif defined(IISIFPGA)
+#include "../../iisifpga_csr_goblin.h"
+#include "../../iisifpga_csr_crg.h"
+#elif defined(QUADRAFPGA)
+#include "../../quadrafpga_csr_crg.h"
+#include "../../quadrafpga_csr_goblin.h"
+#else
+#error "no board defined"
+#endif
+
+
+		// access to the MMCM
+#include "NuBusFPGADrvr_MMCM.h"
+
+#endif
+
 OSErr reconfHW(AuxDCEPtr dce, unsigned char mode, unsigned char depth, unsigned short page) {
 	NuBusFPGADriverGlobalsHdl dStoreHdl = (NuBusFPGADriverGlobalsHdl)dce->dCtlStorage;
 	NuBusFPGADriverGlobalsPtr dStore = *dStoreHdl;
@@ -409,7 +429,11 @@ OSErr reconfHW(AuxDCEPtr dce, unsigned char mode, unsigned char depth, unsigned 
 	}
 	
 	SwapMMUMode ( &busMode );
+	
+	write_reg(dce, GOBOFB_VIDEOCTRL, 0); // here we know we're going to change something, disable video */
+	
 	if (mode != dStore->curMode) {
+		UInt8 id = mode - nativeVidMode;
 		unsigned short i;
 		for (i = nativeVidMode ; i <= dStore->maxMode ; i++) {
 			// disable spurious resources, enable only the right one
@@ -422,16 +446,126 @@ OSErr reconfHW(AuxDCEPtr dce, unsigned char mode, unsigned char depth, unsigned 
 		}
 		dce->dCtlSlotId = mode; // where is that explained ? cscSwitchMode is not in DCDMF3, and you should'nt do that anymore says PDCD...
 		
-		UInt8 id = mode - nativeVidMode;
 		unsigned int ho = ((dStore->hres[0] - dStore->hres[id]) / 2);
 		unsigned int vo = ((dStore->vres[0] - dStore->vres[id]) / 2);
-		/* write_reg(dce, GOBOFB_VIDEOCTRL, 0); */
+		
+#if defined(ENABLE_HDMI_ALT_CHANGE)
+		// we have the ability to change the hardware resolution
+		uint32_t a32 = dce->dCtlDevBase;
+		
+		// here so that data aren't global
+		// timings for the VTG
+#include "NuBusFPGADrvr_Timings.h"
+
+		const uint8_t reg_addr[12] = { DIV_REG, CLKFBOUT_REG1, CLKFBOUT_REG2,
+					 LOCK_REG1, LOCK_REG2, LOCK_REG3,
+					 FILT_REG1, FILT_REG2,
+					 CLKOUT0_REG1, CLKOUT0_REG2,
+					 CLKOUT1_REG1, CLKOUT1_REG2 };
+		const uint16_t reg_mask[12] = { KEEP_IN_DIV, KEEP_IN_MUL_REG1, KEEP_IN_MUL_REG2,
+					  LOCK1_MASK, LOCK23_MASK, LOCK23_MASK,
+					  FILT1_MASK, FILT2_MASK,
+					  REG1_FREQ_MASK & REG1_PHASE_MASK, REG2_FREQ_MASK & REG2_PHASE_MASK,
+					  REG1_FREQ_MASK & REG1_PHASE_MASK, REG2_FREQ_MASK & REG2_PHASE_MASK };
+ 
+#if defined(ENABLE_HDMI_ALT_CHANGE_54MHZ)
+		 const uint16_t freq_25175000[12]  = {0x1041, 0x28b, 0x80, 0x1db, 0x7c01, 0x7fe9, 0x9000, 0x100, 0x597, 0x80, 0x105, 0x80};
+		 const uint16_t freq_40000000[12]  = {0x41, 0x493, 0x80, 0xfa, 0x7c01, 0x7fe9, 0x900, 0x1000, 0x30d, 0x80, 0x83, 0x80};
+		 const uint16_t freq_65000000[12]  = {0x1041, 0x249, 0x0, 0x226, 0x7c01, 0x7fe9, 0x9900, 0x1100, 0x1c8, 0x80, 0x42, 0x80};
+		 const uint16_t freq_108000000[12] = {0x1041, 0x28a, 0x0, 0x1f4, 0x7c01, 0x7fe9, 0x9000, 0x100, 0x145, 0x0, 0x41, 0x0};
+		 const uint16_t freq_148500000[12] = {0x82, 0x6dc, 0x80, 0xfa, 0x7c01, 0x7fe9, 0x1100, 0x1800, 0x83, 0x80, 0x41, 0x40};
+#elif defined(ENABLE_HDMI_ALT_CHANGE_48MHZ)
+#error "Untested input clock for MMCM"
+		 const uint16_t freq_25175000[12]  = {0x1041, 0x28b, 0x80, 0x1db, 0x7c01, 0x7fe9, 0x9000, 0x100, 0x514, 0x0, 0x104, 0x0};
+		 const uint16_t freq_40000000[12]  = {0x1041, 0x30d, 0x80, 0x190, 0x7c01, 0x7fe9, 0x1100, 0x9000, 0x3cf, 0x0, 0xc3, 0x0};
+		 const uint16_t freq_65000000[12]  = {0x41, 0x34e, 0x80, 0x15e, 0x7c01, 0x7fe9, 0x900, 0x1000, 0x145, 0x0, 0x41, 0x0};
+		 const uint16_t freq_108000000[12] = {0x41, 0x597, 0x80, 0xfa, 0x7c01, 0x7fe9, 0x800, 0x8000, 0x145, 0x0, 0x41, 0x0};
+		 const uint16_t freq_148500000[12] = {0x41, 0x3d0, 0x80, 0x12c, 0x7c01, 0x7fe9, 0x900, 0x1000, 0x83, 0x80, 0x41, 0x40};
+#else
+#error "Unknown input clock for MMCM"
+#endif
+
+		short timeout = 1000;
+		while ((read_reg(dce, GOBOFB_VIDEOCTRL) & 0x2 != 0) && timeout) {
+		  /* wait for the reset process to be over */
+		  /* otherwise without a clock it won't finish */
+		  timeout --;
+		  delay(100);
+		}
+
+		if (timeout == 0)
+		  err = ioErr;
+		// first reset the MCMM and set new values
+		litex_clk_assert_reg(DRP_RESET);
+		
+		const uint16_t* freq = freq_148500000;
+		const struct vtg_timing_regs *vtgtr = &vtg_1920x1080_60Hz;
+		
+		if (id & 0x1) {
+		  switch (dStore->hres[id]) {
+		  case 640:
+		    freq = freq_25175000;
+		    vtgtr = &vtg_640x480_60Hz;
+		    ho = 0; /* full screen, not centered */
+		    vo = 0;
+		    break;
+		  case 800:
+		    freq = freq_40000000;
+		    vtgtr = &vtg_800x600_60Hz;
+		    ho = 0;
+		    vo = 0;
+		    break;
+		  case 1024:
+		    freq = freq_65000000;
+		    vtgtr = &vtg_1024x768_60Hz;
+		    ho = 0;
+		    vo = 0;
+		    break;
+		  case 1280:
+		    freq = freq_108000000;
+		    vtgtr = &vtg_1280x1024_60Hz;
+		    ho = 0;
+		    vo = 0;
+		    break;
+		  default:
+		    break;
+		  }
+		}
+		
+		for (int i = 0; (i < 12) && (err == noErr); i++) {
+		  err = litex_clk_change_value_norst(a32,
+						     reg_mask[i], freq[i],
+						     reg_addr[i]);
+		  if (err != noErr) goto mmcmdone;
+		}
+		
+		litex_clk_deassert_reg(DRP_RESET);
+		
+		err = litex_clk_wait(dce->dCtlDevBase, DRP_LOCKED);
+		if (err != noErr) goto mmcmdone;
+		
+		/* the clock should be back we can finish */
+
+		// second fully reconfigure the VTG
+		goblin_video_framebuffer_vtg_hres_write(a32,        vtgtr->hres);
+		goblin_video_framebuffer_vtg_hsync_start_write(a32, vtgtr->hsync_start);
+		goblin_video_framebuffer_vtg_hsync_end_write(a32,   vtgtr->hsync_end);
+		goblin_video_framebuffer_vtg_hscan_write(a32,       vtgtr->hscan);
+		goblin_video_framebuffer_vtg_vres_write(a32,        vtgtr->vres);
+		goblin_video_framebuffer_vtg_vsync_start_write(a32, vtgtr->vsync_start);
+		goblin_video_framebuffer_vtg_vsync_end_write(a32,   vtgtr->vsync_end);
+		goblin_video_framebuffer_vtg_vscan_write(a32,       vtgtr->vscan);
+ 
+	mmcmdone:
+		; /* nothing */
+#endif
+		/* center picture in frame */
 		write_reg(dce, GOBOFB_HRES_START, __builtin_bswap32(ho));
 		write_reg(dce, GOBOFB_VRES_START, __builtin_bswap32(vo));
 		write_reg(dce, GOBOFB_HRES_END, __builtin_bswap32(ho + dStore->hres[id]));
 		write_reg(dce, GOBOFB_VRES_END, __builtin_bswap32(vo + dStore->vres[id]));
-		/* write_reg(dce, GOBOFB_VIDEOCTRL, 1); */
 	}
+	
 	if (depth != dStore->curDepth) {
 		switch (depth) {
 		case kDepthMode1:
@@ -460,6 +594,16 @@ OSErr reconfHW(AuxDCEPtr dce, unsigned char mode, unsigned char depth, unsigned 
 	dStore->curMode = mode;
 	dStore->curDepth = depth;
 	dStore->curPage = page; /* FIXME: HW */
+
+	short timeout = 1000;
+	while ((read_reg(dce, GOBOFB_VIDEOCTRL) & 0x2 != 0) && timeout) {
+	  /* wait for the reset process to be over */
+	  timeout --;
+	}
+	if (timeout == 0)
+	  err = ioErr;
+	
+	write_reg(dce, GOBOFB_VIDEOCTRL, 1); // restart the video with the new parameters
 		  
 	SwapMMUMode ( &busMode );
 
@@ -506,7 +650,7 @@ OSErr updatePRAM(AuxDCEPtr dce, unsigned char mode, unsigned char depth, unsigne
 		pram.depth = depth;
 		pram.page = page;
 		spb.spSlot = dce->dCtlSlot;
-		spb.spsPointer = &pram;
+		spb.spsPointer = (Ptr)&pram;
 		err = SPutPRAMRec(&spb);
 	}
 	return err;

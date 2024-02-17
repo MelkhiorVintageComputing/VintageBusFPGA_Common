@@ -45,9 +45,7 @@ class VideoFrameBufferMultiDepth(Module, AutoCSR):
         
         print(f"FRAMEBUFFER: dram_port.data_width = {dram_port.data_width}, {hres}x{vres}, 0x{base:x}, in {clock_domain}, clock_faster_than_sys={clock_faster_than_sys}")
         
-        vga_sync = getattr(self.sync, clock_domain)
-        
-        npixels = hres * vres # default to max
+        vga_sync = getattr(self.sync, clock_domain) # usually should be named hdmi_sync, really...
 
         # if 0, 32-bits mode
         # should only be changed while in reset
@@ -55,6 +53,7 @@ class VideoFrameBufferMultiDepth(Module, AutoCSR):
         # mode, as x in 2^x (so 1, 2, 4, 8 bits)
         # should only be changed while in reset
         self.indexed_mode = Signal(2, reset = 0x3)
+        # for the VBL interrupt
         self.vblping = Signal(reset = 0)
         
         if (hwcursor):
@@ -146,7 +145,7 @@ class VideoFrameBufferMultiDepth(Module, AutoCSR):
         self.submodules.fb_dma = LiteDRAMFBDMAReader(dram_port,
                                                      fifo_depth     = fifo_depth//(dram_port.data_width//8),
                                                      default_base   = base,
-                                                     default_length = npixels)
+                                                     default_length = (hres * vres)) # default to max
         
         # If DRAM Data Width > 8-bit and Video clock is faster than sys_clk:
         # actually always use that case to simplify the design
@@ -463,6 +462,7 @@ class Goblin(Module, AutoCSR):
         bt_addr = Signal(8, reset = 0) # reg 0x14 ; lut itself in reg 0x18
         bt_cmap_state = Signal(2, reset = 0) 
         m_vbl_disable = Signal(reset = 1) # reg 0x4
+        bt_upd = Signal()
 
         # for sub-resolution
         hres_start = Signal(hbits, reset = 0)
@@ -472,6 +472,8 @@ class Goblin(Module, AutoCSR):
         vres_upd = Signal()
 
         videoctrl = Signal() # reg 0x8
+        videoctrl_upd = Signal()
+        videoctrl_busy = Signal()
         
         vbl_signal = Signal(reset = 0) # reg 0xC
         self.comb += irq_line.eq(~vbl_signal | m_vbl_disable) # irq_line is active low
@@ -493,11 +495,13 @@ class Goblin(Module, AutoCSR):
                             Case(bus.adr[0:18], {
                                 "default": [],
                                 # gobofb_mode
-                                0x0: [ NextValue(bt_mode, bus.dat_w[low_byte]), ],
+                                0x0: [ NextValue(bt_mode, bus.dat_w[low_byte]),
+                                       NextValue(bt_upd, 1), ],
                                 # set vbl
                                 0x1: [ NextValue(m_vbl_disable, ~bus.dat_w[low_bit]), ],
                                 # gobofb on/off
-                                0x2: [ NextValue(videoctrl, bus.dat_w[low_bit]), ],
+                                0x2: [ NextValue(videoctrl, bus.dat_w[low_bit]),
+                                       NextValue(videoctrl_upd, 1), ],
                                 # clear irq
                                 0x3: [ NextValue(vbl_signal, 0), ],
                                 # 0x4: reset in SW
@@ -556,7 +560,7 @@ class Goblin(Module, AutoCSR):
                                 Case(bus.adr[0:18], {
                                     # bt_addr
                                     0x0: [ NextValue(bus.dat_r[low_byte], bt_mode), ],
-                                    0x2: [ NextValue(bus.dat_r[low_byte], videoctrl), ],
+                                    0x2: [ NextValue(bus.dat_r[low_byte], Cat(videoctrl, videoctrl_busy)), ],
                                     0x3: [ NextValue(bus.dat_r[low_byte], ~irq_line), ], # irq_line is active low
                                     "default": [ NextValue(bus.dat_r, 0xDEADBEEF)],
                                     0x10: [ NextValue(bus.dat_r, hres), ], # hres (r/o) # FIXME: endianess
@@ -573,8 +577,7 @@ class Goblin(Module, AutoCSR):
         )
         # mode switch logic
         #npixels = hres * vres
-        npixels = Signal(hbits + vbits +1, reset = (hres * vres))
-        old_bt_mode = Signal(8) # different from bt_mode
+        npixels = Signal(hbits + vbits + 1, reset = (hres * vres))
         in_reset = Signal()
         post_reset_ctr = Signal(3)
         previous_videoctrl = Signal()
@@ -590,16 +593,18 @@ class Goblin(Module, AutoCSR):
             handle_truecolor_bit = [ self.video_framebuffer.use_indexed.eq(~bt_mode[4:5]) ]
         else:
             handle_truecolor_bit = [ ]
-            
+        
         # this has grown complicated and should be a FSM...
-        self.sync += [ old_bt_mode.eq(bt_mode),
-                       If((old_bt_mode != bt_mode) | vres_upd,
+        self.sync += [ If(bt_upd | vres_upd,
+                          bt_upd.eq(0),
                           vres_upd.eq(0),
                           in_reset.eq(1),
+                          post_reset_ctr.eq(0),
                           videoctrl.eq(0), # start a disabling cycle, or stay disabled
-                          previous_videoctrl.eq(videoctrl), # preserve old state for restoration later
+                          videoctrl_upd.eq(1), # start a disabling cycle, or stay disabled
+                          previous_videoctrl.eq(videoctrl | previous_videoctrl), # preserve old state for restoration later, if 'previous' is already set then we just had an update in the middle of an update...
                        ),
-                       If(in_reset & ~vtg_enable, # we asked for a reset and by now, the VTG has been turned off (or was off)
+                       If(~bt_upd & ~vres_upd & in_reset & ~vtg_enable, # we asked for a reset and by now, the VTG has been turned off (or was off)
                           self.video_framebuffer.indexed_mode.eq(bt_mode[0:2]),
                           *handle_truecolor_bit,
                           in_reset.eq(0),
@@ -610,7 +615,7 @@ class Goblin(Module, AutoCSR):
                           vtg._vres_start.eq(vres_start),
                           vtg._vres_end.eq(  vres_end),
                        ),
-                       If(post_reset_ctr == 4, # now reconfigure the DMA
+                       If(~bt_upd & ~vres_upd & (post_reset_ctr == 4), # now reconfigure the DMA
                           If(bt_mode[4:5],
                               Case(bt_mode[0:2], {
                                   0x0: self.video_framebuffer.fb_dma.length.eq(npixels << 2),
@@ -625,11 +630,13 @@ class Goblin(Module, AutoCSR):
                               }),
                           ),
                        ),
-                       If(post_reset_ctr == 1, # we've waited for the mode switch so restore video mode
-                          videoctrl.eq(previous_videoctrl),
+                       If(~bt_upd & ~vres_upd & (post_reset_ctr == 1) & previous_videoctrl, # we've waited for the mode switch so restore video ctrl if set
+                          videoctrl.eq(1),
+                          videoctrl_upd.eq(1),
+                          previous_videoctrl.eq(0), # reset, ow that the update is finished
                        ),
-                       If(post_reset_ctr != 0,
-                           post_reset_ctr.eq(post_reset_ctr - 1),
+                       If(~bt_upd & ~vres_upd & (post_reset_ctr != 0),
+                          post_reset_ctr.eq(post_reset_ctr - 1),
                        ),
         ]
 
@@ -638,29 +645,40 @@ class Goblin(Module, AutoCSR):
         videoctrl_starting = Signal()
         videoctrl_stopping = Signal()
         self.sync += [
-            If(~videoctrl_starting & ~videoctrl_stopping, # while we're changing state, delay any new request for change
-               old_videoctrl.eq(videoctrl),
-            ),
             # turn on
-            If(videoctrl & ~old_videoctrl, # pos edge
-               self.video_framebuffer.fb_dma.enable.eq(1), # enable DMA
-               videoctrl_starting.eq(1),
+            If(videoctrl & videoctrl_upd & ~videoctrl_starting & ~videoctrl_stopping,
+               If(~old_videoctrl,
+                  self.video_framebuffer.fb_dma.enable.eq(1), # enable DMA
+                  videoctrl_starting.eq(1),
+                  videoctrl_upd.eq(0),
+               ).Else( # already on, ignore?
+                   videoctrl_upd.eq(0),
+               )
             ),
-            If(videoctrl & (self.video_framebuffer.fb_dma.rsv_level != 0),
+            If(videoctrl_starting & (self.video_framebuffer.fb_dma.rsv_level != 0),
                vtg_enable.eq(1), # there's some data requested, good to go
-               videoctrl_starting.eq(0),
+               old_videoctrl.eq(1), # we're on
+               videoctrl_starting.eq(0), # starting finished
             ),
             # turn off
-            If(~videoctrl & old_videoctrl, # neg edge
-               self.video_framebuffer.fb_dma.enable.eq(0), # disable DMA
-               videoctrl_stopping.eq(1),
+            If(~videoctrl & videoctrl_upd & ~videoctrl_starting & ~videoctrl_stopping, # neg edge
+               If(old_videoctrl,
+                  self.video_framebuffer.fb_dma.enable.eq(0), # disable DMA
+                  videoctrl_stopping.eq(1),
+                  videoctrl_upd.eq(0),
+               ).Else( # already off, ignore?
+                   videoctrl_upd.eq(0),
+               )
             ),
-            If(~videoctrl & (self.video_framebuffer.fb_dma.rsv_level == 0) & (self.video_framebuffer.underflow),
+            If(videoctrl_stopping & (self.video_framebuffer.fb_dma.rsv_level == 0) & (self.video_framebuffer.underflow),
                vtg_enable.eq(0), # the DMA FIFO is purged, stop vtg
+               old_videoctrl.eq(0),
                videoctrl_stopping.eq(0),
             ),
-            ]
-            
+        ]
+        
+        self.comb += [ videoctrl_busy.eq(videoctrl_starting | videoctrl_stopping | in_reset | (post_reset_ctr != 0) | videoctrl_upd) ]
+        
         # VBL logic
         self.sync += [
                       If(self.video_framebuffer.vblping == 1,

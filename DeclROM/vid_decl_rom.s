@@ -8,8 +8,8 @@
 
 sRsrc_Board = 1 /*  board sResource (>0 & <128) */
 	.include "VidRomDef.s"
-sRsrc_RAMDsk = 0x90 /*  functional sResources */
-sRsrc_SDCard = 0x91 /*  functional sResources */
+sRsrc_RAMDsk = 0xF0 /*  functional sResources */
+sRsrc_SDCard = 0xF1 /*  functional sResources */
 sRsrc_HDMIAudio = 0xA0 /*  functional sResources */
 	
     .global DeclROMDir

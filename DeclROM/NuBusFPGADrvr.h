@@ -83,15 +83,15 @@ struct MyGammaTbl {
 };
 
 #define nativeVidMode ((unsigned char)0x80)
-/* alternate resolution in 0x81...0x8f */
-#define diskResource ((unsigned char)0x90)
+/* alternate resolution in 0x81...0x9f */
+#define diskResource ((unsigned char)0xF0)
 
 struct NuBusFPGADriverGlobals {
 	AuxDCEPtr	dce; // unused
 	SlotIntQElement *siqel;
 	//unsigned char shadowClut[768];
-	unsigned short hres[16]; /* HW max in 0 */
-	unsigned short vres[16]; /* HW max in 0 */
+	unsigned short hres[32]; /* HW max in 0, WB in even, HW in odd */
+	unsigned short vres[32]; /* HW max in 0, WB in even, HW in odd */
 	unsigned short curPage;
 	unsigned char maxMode;
 	unsigned char curMode; /* mode ; this is resolution (which can't be changed in 7.1 except via reboot ?) */
@@ -123,8 +123,6 @@ static inline unsigned int read_reg(AuxDCEPtr dce, unsigned int reg) {
 	return *((volatile unsigned int*)(dce->dCtlDevBase+GOBOFB_BASE+reg));;
 }
 
-/* ASM */
-extern SlotIntServiceProcPtr interruptRoutine;
 /* ctrl */
 void linearGamma(NuBusFPGADriverGlobalsPtr dStore) __attribute__ ((section (".text.fbdriver")));
 OSErr changeIRQ(AuxDCEPtr dce, char en, OSErr err) __attribute__ ((section (".text.fbdriver")));
