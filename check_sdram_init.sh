@@ -3,8 +3,8 @@
 GOODPHY=`grep csr_base,ddrphy csr.csv | awk -F, '{ print $3 }'`
 GOODSDRAM=`grep csr_base,sdram csr.csv | awk -F, '{ print $3 }'`
 
-USEPHY=`grep ddrphy_base *soc.py | awk '{ print $3 }'`
-USESDRAM=`grep sdram_dfii_base *soc.py | awk '{ print $3 }'`
+USEPHY=`grep ddrphy_base *soc.py | awk '{ print $3 }' | sed -e 's/,.*//'`
+USESDRAM=`grep sdram_dfii_base *soc.py | awk '{ print $3 }' | sed -e 's/,.*//'`
 
 RET=0
 
