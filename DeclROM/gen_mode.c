@@ -113,6 +113,7 @@ int main(int argc, char **argv) {
 			fprintf(fd, "_End%sParms:\n\n",modename);
 		}
 
+#if defined(ENABLE_HDMI_ALT_CHANGE)
 		if (res_db[i].has_hw) {
 		for (j = 0 ; j < 6 ; j++) {
 			char modename[128];
@@ -144,6 +145,7 @@ int main(int argc, char **argv) {
 			fprintf(fd, "_End%sParms:\n\n",modename);
 		}
 		}
+#endif
 		
 		fclose(fd);
 
@@ -205,6 +207,7 @@ int main(int argc, char **argv) {
 				fprintf(fd, "_ScreenNameGoboFB_R%hux%huEnd:\n", hres, vres);
 			}
 		}
+#if defined(ENABLE_HDMI_ALT_CHANGE)
 		if (res_db[i].has_hw) {
 		fprintf(fd, "\tALIGN 2\n");
 		fprintf(fd, "_VModeName:\n");
@@ -232,6 +235,7 @@ int main(int argc, char **argv) {
 			}
 		}
 		}
+#endif
 		
 		fclose(fd);
 	}
@@ -268,6 +272,7 @@ int main(int argc, char **argv) {
 				fprintf(fd, "\tOSLstEntry\tfifthVidMode,_R%hux%huD32Modes\t/* offset to 24/32 Bit Mode parms */\n", hres, vres);
 				fprintf(fd, "\tOSLstEntry\tsixthVidMode,_R%hux%huD16Modes\t/* offset to 15/16 Bit Mode parms */\n", hres, vres);
 				fprintf(fd, "\t.long EndOfList\t/* end of list */\n\n");
+#if defined(ENABLE_HDMI_ALT_CHANGE)
 				if (res_db[i].has_hw) {
 				fprintf(fd, "\tALIGN 2\n");
 				fprintf(fd, "_sRsrc_GoboFB_R%hux%huHW:\n", hres, vres);
@@ -288,6 +293,7 @@ int main(int argc, char **argv) {
 				fprintf(fd, "\tOSLstEntry\tsixthVidMode,_R%hux%huDHW16Modes\t/* offset to 15/16 Bit Mode parms */\n", hres, vres);
 				fprintf(fd, "\t.long EndOfList\t/* end of list */\n\n");
 				}
+#endif
 			}
 		}
 		fclose(fd);
@@ -325,8 +331,10 @@ int main(int argc, char **argv) {
 			const unsigned short vres = res_db[i].vres;
 			if (enabled[i]) {
 				fprintf(fd, "sRsrc_GoboFB_R%hux%hu = 0x%02hhx\n", hres, vres, id);
+#if defined(ENABLE_HDMI_ALT_CHANGE)
 				if (res_db[i].has_hw)
 				  fprintf(fd, "sRsrc_GoboFB_R%hux%huHW = 0x%02hhx\n", hres, vres, id+1);
+#endif
 				id += 2;
 			}
 		}
@@ -350,19 +358,21 @@ int main(int argc, char **argv) {
 			const unsigned short vres = res_db[i].vres;
 			if (enabled[i]) {
 				fprintf(fd, "\tOSLstEntry\tsRsrc_GoboFB_R%hux%hu,_sRsrc_GoboFB_R%hux%hu/* video sRsrc List */\n", hres, vres, hres, vres);
+#if defined(ENABLE_HDMI_ALT_CHANGE)
 				if (res_db[i].has_hw) {
 				  fprintf(fd, "\tOSLstEntry\tsRsrc_GoboFB_R%hux%huHW,_sRsrc_GoboFB_R%hux%huHW/* video sRsrc List */\n", hres, vres, hres, vres);
 				}
+#endif
 			}
 		}
+#ifdef ENABLE_HDMIAUDIO
+		fprintf(fd, "\tOSLstEntry\tsRsrc_HDMIAudio,_sRsrc_HDMIAudio\n");
+#endif
 #ifdef ENABLE_RAMDSK
 		fprintf(fd, "\tOSLstEntry\tsRsrc_RAMDsk,_sRsrc_RAMDsk\n");
 #endif
 #ifdef ENABLE_SDCARD
 		fprintf(fd, "\tOSLstEntry\tsRsrc_SDCard,_sRsrc_SDCard\n");
-#endif
-#ifdef ENABLE_HDMIAUDIO
-		fprintf(fd, "\tOSLstEntry\tsRsrc_HDMIAudio,_sRsrc_HDMIAudio\n");
 #endif
 		fprintf(fd, "\tDatLstEntry	endOfList,	0\n");
 		
