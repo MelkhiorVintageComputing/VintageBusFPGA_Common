@@ -39,6 +39,13 @@ struct SDCardContext {
 #include "../../iisifpga_csr_sdmem2block.h"
 #include "../../iisifpga_csr_sdphy.h"
 //#include "../../iisifpga_csr_exchange_with_sd.h"
+#elif defined(LC32FPGA)
+#include "../../lc32fpga_csr_sdblock2mem.h"
+#include "../../lc32fpga_csr_sdcore.h"
+//#include "../../lc32fpga_csr_sdirq.h"
+#include "../../lc32fpga_csr_sdmem2block.h"
+#include "../../lc32fpga_csr_sdphy.h"
+//#include "../../lc32fpga_csr_exchange_with_sd.h"
 #elif defined(QUADRAFPGA)
 #include "../../quadrafpga_csr_sdblock2mem.h"
 #include "../../quadrafpga_csr_sdcore.h"

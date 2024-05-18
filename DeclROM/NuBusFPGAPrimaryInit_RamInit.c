@@ -8,6 +8,9 @@
 #elif defined(IISIFPGA)
 #include "../../iisifpga_csr_ddrphy.h"
 #include "../../iisifpga_csr_sdram.h"
+#elif defined(LC32FPGA)
+#include "../../lc32fpga_csr_ddrphy.h"
+#include "../../lc32fpga_csr_sdram.h"
 #elif defined(QUADRAFPGA)
 #include "../../quadrafpga_csr_ddrphy.h"
 #include "../../quadrafpga_csr_sdram.h"

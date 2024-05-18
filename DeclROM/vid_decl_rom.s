@@ -42,7 +42,6 @@ _BoardName:
 	ALIGN 2
 
 /*  _VidICON ; optional icon, not needed */
-/*  _sVidNameDir ; optional name(s), not needed */
 
 	.section .text.primary_init
 /* _sPInitRec: */
@@ -80,8 +79,8 @@ _VendorId:
             .string        "Romain Dolbeau\0"        /*  vendor ID */
 _SerialNum:	
             .string        "0000000001\0"        /*  serial number */
-_RevLevel:	
-            .string        "NuBusFPGA V1.0\0"        /*  revision level */
+_RevLevel:
+	.include "../../board.inc"
 _PartNum:	
             .string        "Part Number\0"           /*  part number */
 _Date:	

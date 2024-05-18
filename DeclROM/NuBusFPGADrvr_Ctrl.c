@@ -135,7 +135,7 @@ OSErr cNuBusFPGACtl(CntrlParamPtr pb, /* DCtlPtr */ AuxDCEPtr dce)
 				  /* dStore->shadowClut[idx*3+1] = (*vdentry)->csTable[i].rgb.green; */
 				  /* dStore->shadowClut[idx*3+2] = (*vdentry)->csTable[i].rgb.blue; */
 				  
-				  write_reg(dce, GOBOFB_LUT_ADDR, idx);
+				  write_reg(dce, GOBOFB_LUT_ADDR, (idx & 0xFF));
 				  write_reg(dce, GOBOFB_LUT, dStore->gamma.gFormulaData[0][(*vdentry)->csTable[i].rgb.red>>8 & 0xFF]);
 				  write_reg(dce, GOBOFB_LUT, dStore->gamma.gFormulaData[1][(*vdentry)->csTable[i].rgb.green>>8 & 0xFF]);
 				  write_reg(dce, GOBOFB_LUT, dStore->gamma.gFormulaData[2][(*vdentry)->csTable[i].rgb.blue>>8 & 0xFF]);
@@ -373,6 +373,9 @@ OSErr cNuBusFPGACtl(CntrlParamPtr pb, /* DCtlPtr */ AuxDCEPtr dce)
 #elif defined(IISIFPGA)
 #include "../../iisifpga_csr_goblin.h"
 #include "../../iisifpga_csr_crg.h"
+#elif defined(LC32FPGA)
+#include "../../lc32fpga_csr_goblin.h"
+#include "../../lc32fpga_csr_crg.h"
 #elif defined(QUADRAFPGA)
 #include "../../quadrafpga_csr_crg.h"
 #include "../../quadrafpga_csr_goblin.h"
