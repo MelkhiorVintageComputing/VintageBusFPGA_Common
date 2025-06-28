@@ -1,0 +1,3 @@
+0x0287a, 6, replace1
+0x02900, 6, replace2
+0x0fffe, 2, checksum
