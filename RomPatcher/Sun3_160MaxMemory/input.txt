@@ -1,0 +1,2 @@
+0x0c5a2, 6, replace1
+0x0c60a, 6, replace2
