@@ -7,3 +7,8 @@ replace1:
 replace2:
 	move.l #0x01fe0000,%D5
 	.section .text.finishedreplace2
+
+	.section .text.checksum
+checksum:
+	.byte 0xdf
+	.byte 0x2a
