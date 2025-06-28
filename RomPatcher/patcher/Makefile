@@ -10,7 +10,7 @@ YACC=bison -d #--report-file=bison.log --report=all
 CC=gcc
 CFLAGS=-O2
 
-all: patcher genlink
+all: patcher genlink sun3_checksum
 
 %.o: %.c
 	$(CC) $(CFLAGS) $< -c -o $@
@@ -20,6 +20,9 @@ patcher: $(PATCHEROBJ) $(OOBJ)
 
 genlink: $(GENLINKOBJ) $(OOBJ)
 	$(CC) $(CFLAGS) $^ -o $@
+
+sun3_checksum: sun3_checksum.c
+	$(CC) $(CFLAGS) $< -o $@
 
 parser_par.h: parser_par.o
 
