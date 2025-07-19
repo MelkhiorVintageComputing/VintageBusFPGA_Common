@@ -1,0 +1,7 @@
+0x003a4, 6, fixIrq7Handler
+0x0188c, 8, fixMonReset
+0x026da, 10, bypassTest0Eand0Fpatch
+0x028f2, 0, test_10_memory_test
+0x02920, 8, patch_test_10_memory_test_1
+0x0299c, 36, patch_test_10_memory_test_2
+0x04070, 6, fixMonitor_Key_K
