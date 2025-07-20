@@ -1,0 +1,5 @@
+0x01938, 8, initMouseKeyboard
+0x019cc, 0, afterInitMouseKeyboard
+0x01a3a, 0, detectKeyboard
+0x01a44, 8, detectKeyboardAfterUnknown
+0x01a7e, 0, afterDetectKeyboard
