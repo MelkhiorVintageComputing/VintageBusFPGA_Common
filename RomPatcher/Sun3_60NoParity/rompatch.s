@@ -19,8 +19,14 @@ fixMonReset:
 	      and test_0F (forced parity error test)
 	*/
 bypassTest0Eand0Fpatch:
-	jmp (%pc,test_10_memory_test)
+	jmp (%pc,memory_sizing_print)
 	nop
+
+	.section .text.memory_sizing_print
+memory_sizing_print:	
+
+	.section .text.check_sw:
+check_sw:
 	
 	.section .text.test_10_memory_test
 test_10_memory_test:	
