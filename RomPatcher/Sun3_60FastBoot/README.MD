@@ -1,0 +1,1 @@
+Patches to the V1.9 ROM of the Sun3/60, that cuts down on some waoting time to speed-up simulation. Based on the NoParity version, so simulation don't need to implement all of the parity stuff, either.
