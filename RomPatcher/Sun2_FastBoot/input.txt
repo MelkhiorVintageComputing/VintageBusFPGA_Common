@@ -1,3 +1,4 @@
 0x0001b6, 0, diagret
 0x000b80, 2, loweritercount
 0x000e80, 4, Mconstop
+0x0070e9, 1, uart_time_const

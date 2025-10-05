@@ -9,3 +9,8 @@ loweritercount:
 Mconstop:
 	jmp (%pc,diagret)
 	
+	.section .text.uart_time_const
+uart_time_const:
+	.byte 0x1e
+	
+	
