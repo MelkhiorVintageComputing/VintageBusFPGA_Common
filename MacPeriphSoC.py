@@ -10,6 +10,7 @@ from litex.soc.integration.soc_core import *
 
 from litedram.modules import MT41J128M16
 from litedram.modules import IS43TR8512B
+from litedram.modules import MT47H64M16
 from litedram.phy import s7ddrphy
 
 from litex.soc.cores.video import VideoS7HDMIPHY
@@ -90,6 +91,7 @@ class MacPeriphSoC(SoCCore):
         # in 24 bits it's only one megabyte,  $s0 0000 through $sF FFFF
         # they are translated: '$s0 0000-$sF FFFF' to '$Fs00 0000-$Fs0F FFFF' (for s in range $9 through $E)
         # let's assume we have 32-bits mode, this can be requested in the DeclROM apparently
+        #
         self.wb_mem_map = wb_mem_map = {
             # master to map the NuBus access to RAM
             "master":            0x00000000, # to 0x3FFFFFFF
@@ -137,6 +139,7 @@ class MacPeriphSoC(SoCCore):
         if (config_flash):
             from litespi.modules.generated_modules import S25FL128S
             from litespi.modules.generated_modules import S25FL256S
+            from litespi.modules.generated_modules import W25Q128JV
             from litespi.opcodes import SpiNorFlashOpCodes as Codes
             if ((version == "V1.0") or (version == "V1.2")): # ZTex
                 self.add_spi_flash(name="config_spiflash",
@@ -154,11 +157,14 @@ class MacPeriphSoC(SoCCore):
                     # if the signal is not defined, we're on a 2.13 and don't need it
                     self.comb += [ ]
                     # ignore
-            elif (version == "V2.0"):
+            elif ((version == "V2.0") or (version == "V3.0")):
                 self.add_spi_flash(name="config_spiflash",
-                                   mode="4x",
+                                   mode="1x", # can we go to 4x and how ?
                                    clk_freq = self.sys_clk_freq/4, # CHECKME; PHY freq ?
-                                   module=S25FL256S(Codes.READ_1_1_1), # checkme
+                                   module = {
+                                       "V2.0" : S25FL256S(Codes.READ_1_1_1), # checkme: flash and opcode
+                                       "V3.0" : W25Q128JV(Codes.READ_1_1_1),#  checkme:  opcode
+                                   }[version],
                                    region_size = 0x00008000, # 32 KiB, 
                                    region_offset = (sector * 65536), # CHECKME
                                    with_mmap=True, with_master=False)
@@ -167,10 +173,22 @@ class MacPeriphSoC(SoCCore):
             print(f"$$$$$ ROM must be put in the config Flash at sector {sector} $$$$$\n");
         
     def mac_add_sdram(self, hwinit = False, sdram_dfii_base = None, ddrphy_base = None, version = "V1.0"):
-        self.submodules.ddrphy = s7ddrphy.A7DDRPHY(self.platform.request("ddram"),
-                                                   memtype        = "DDR3",
-                                                   nphases        = 4,
-                                                   sys_clk_freq   = self.sys_clk_freq)
+        if ((version == "V1.0") or (version == "V1_2") or (version == "V2.0")): # DDR3 board
+            self.submodules.ddrphy = s7ddrphy.A7DDRPHY(self.platform.request("ddram"),
+                                                       memtype        = "DDR3",
+                                                       nphases        = 4,
+                                                       sys_clk_freq   = self.sys_clk_freq)
+        elif (version == "V3.0"):
+            self.submodules.ddrphy = s7ddrphy.A7DDRPHY(self.platform.request("ddram"),
+                                                       memtype        = "DDR2",
+                                                       nphases        = 2,
+                                                       sys_clk_freq   = self.sys_clk_freq)
+            #self.submodules.ddrphy = s7ddrphy.s7ddrphy_with_ratio(ratio = 2,
+            #                                                      phy_cls=s7ddrphy.A7DDRPHY) (self.platform.request("ddram"),
+            #                                                           memtype        = "DDR2",
+            #                                                           nphases        = 2,
+            #                                                           sys_clk_freq   = self.sys_clk_freq)
+            
         if ((version == "V1.0") or (version == "V1_2")): # ZTex Boards
             self.add_sdram("sdram",
                            phy           = self.ddrphy,
@@ -183,16 +201,28 @@ class MacPeriphSoC(SoCCore):
                            module        = IS43TR8512B(self.sys_clk_freq, "1:4"), # TBD
                            l2_cache_size = 0,
             )
+        elif (version == "V3.0"): # Artix w/ DDR2 board
+            self.add_sdram("sdram",
+                           phy           = self.ddrphy,
+                           module        = MT47H64M16(self.sys_clk_freq, "1:2"), # close enough ?
+                           l2_cache_size = 0,
+            )
             
         self.avail_sdram = self.bus.regions["main_ram"].size
+        print(f"Avail SDRAM is {self.avail_sdram} ({self.avail_sdram:x})")
 
         if (hwinit):
-            from VintageBusFPGA_Common.sdram_init import DDR3FBInit
+            from VintageBusFPGA_Common.sdram_init import DDR3FBInit, DDR2Init
             if ((version == "V1.0") or (version == "V1.2")): # ZTex Boards
                 self.submodules.sdram_init = DDR3FBInit(sys_clk_freq = self.sys_clk_freq,
-                                                        bitslip = 1, delay = 25, # CHECKME / FIXME: parameters
+                                                        bitslip = [1,1], delay = [25,25], # CHECKME / FIXME: parameters
                                                         sdram_dfii_base = sdram_dfii_base, ddrphy_base = ddrphy_base)
                 self.bus.add_master(name="DDR3Init", master=self.sdram_init.bus)
+            elif (version == "V3.0"): #Artix7 + DDR2
+                self.submodules.sdram_init = DDR2Init(sys_clk_freq = self.sys_clk_freq,
+                                                      bitslip = [3,3], delay = [15,14],
+                                                      sdram_dfii_base = sdram_dfii_base, ddrphy_base = ddrphy_base)
+                self.bus.add_master(name="DDR2Init", master=self.sdram_init.bus)
             else:
                 assert(False) # HW init TBC for TE0710 boards
 
