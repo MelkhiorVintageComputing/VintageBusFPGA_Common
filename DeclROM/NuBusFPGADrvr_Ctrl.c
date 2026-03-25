@@ -228,7 +228,7 @@ OSErr cNuBusFPGACtl(CntrlParamPtr pb, /* DCtlPtr */ AuxDCEPtr dce)
 		   a32 += vPInfo->csPage * 1024 * 1024 * 4; /* fixme */
 		   
 		   SwapMMUMode ( &busMode );
-#if 0
+#if 1
 		   if ((dStore->curMode != kDepthMode5) && (dStore->curMode != kDepthMode6)) {
 			   /* grey the screen */
 			   a32_l0 = a32;
@@ -437,6 +437,7 @@ OSErr reconfHW(AuxDCEPtr dce, unsigned char mode, unsigned char depth, unsigned 
 	
 	if (mode != dStore->curMode) {
 		UInt8 id = mode - nativeVidMode;
+		short timeout;
 		unsigned short i;
 		for (i = nativeVidMode ; i <= dStore->maxMode ; i++) {
 			// disable spurious resources, enable only the right one
@@ -487,16 +488,16 @@ OSErr reconfHW(AuxDCEPtr dce, unsigned char mode, unsigned char depth, unsigned 
 #error "Unknown input clock for MMCM"
 #endif
 
-		short timeout = 1000;
+		timeout = 1000;
 		while ((read_reg(dce, GOBOFB_VIDEOCTRL) & 0x2 != 0) && timeout) {
 		  /* wait for the reset process to be over */
 		  /* otherwise without a clock it won't finish */
 		  timeout --;
 		  delay(100);
 		}
-
 		if (timeout == 0)
 		  err = ioErr;
+		
 		// first reset the MCMM and set new values
 		litex_clk_assert_reg(DRP_RESET);
 		
@@ -566,6 +567,14 @@ OSErr reconfHW(AuxDCEPtr dce, unsigned char mode, unsigned char depth, unsigned 
 		write_reg(dce, GOBOFB_VRES_START, __builtin_bswap32(vo));
 		write_reg(dce, GOBOFB_HRES_END, __builtin_bswap32(ho + dStore->hres[id]));
 		write_reg(dce, GOBOFB_VRES_END, __builtin_bswap32(vo + dStore->vres[id]));
+		
+		timeout = 1000;
+		while ((read_reg(dce, GOBOFB_VIDEOCTRL) & 0x2 != 0) && timeout) {
+		  /* wait for the reset process to be over */
+		  timeout --;
+		}
+		if (timeout == 0)
+		  err = ioErr;
 	}
 	
 	if (depth != dStore->curDepth) {

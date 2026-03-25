@@ -352,6 +352,7 @@ int main(int argc, char **argv) {
 			return -1;
 		}
 		fprintf(fd, "_sRsrcDir:\n");
+#ifndef DISABLE_GOBLIN
 		fprintf(fd, "\tOSLstEntry\tsRsrc_Board,_sRsrc_Board\t/*  board sRsrc List */\n");
 		for (i = 0 ; (res_db[i].hres != 0) && (res_db[i].vres != 0) ; i++) {
 			const unsigned short hres = res_db[i].hres;
@@ -365,6 +366,7 @@ int main(int argc, char **argv) {
 #endif
 			}
 		}
+#endif
 #ifdef ENABLE_HDMIAUDIO
 		fprintf(fd, "\tOSLstEntry\tsRsrc_HDMIAudio,_sRsrc_HDMIAudio\n");
 #endif
