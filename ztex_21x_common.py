@@ -96,6 +96,12 @@ class ZTexPlatform(XilinxPlatform):
         XilinxPlatform.__init__(self, device, _io, connectors, toolchain="vivado")
         
         self.add_extension(flash_io)
+
+        self.toolchain.additional_commands = \
+            ["write_cfgmem -force -format bin -interface spix2 -size 16 "
+             "-loadbit \"up 0x00000000 {build_name}.bit\" "
+             "-loaddata \"up 0x00280000 ../../../VintageBusFPGA_Common/DeclROM/vid_decl_rom.bin\" "
+             "-file {build_name}.bit.bin "]
         
         self.toolchain.bitstream_commands = \
             ["set_property BITSTREAM.CONFIG.SPI_32BIT_ADDR No [current_design]",
