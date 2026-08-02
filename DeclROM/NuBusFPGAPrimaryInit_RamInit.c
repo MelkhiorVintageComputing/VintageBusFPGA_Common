@@ -18,6 +18,9 @@
 #error "no board defined"
 #endif
 
+// for bringup of hardware initializer
+//#define DDR_RECORD_RESULTS
+
 /* auto-generated sdram_phy.h + sc */
 #define DFII_CONTROL_SEL        0x01
 #define DFII_CONTROL_CKE        0x02
@@ -31,6 +34,11 @@
 #define DFII_COMMAND_WRDATA     0x10
 #define DFII_COMMAND_RDDATA     0x20
 
+#ifndef SDRAM_DDR2
+// so DDR3 (V1.0)
+#ifndef SDRAM_DDR3
+#define SDRAM_DDR3
+#endif
 #define SDRAM_PHY_A7DDRPHY
 #define SDRAM_PHY_XDR 2
 #define SDRAM_PHY_DATABITS 16
@@ -45,6 +53,24 @@
 #define SDRAM_PHY_MODULES SDRAM_PHY_DATABITS/8
 #define SDRAM_PHY_DELAYS 32
 #define SDRAM_PHY_BITSLIPS 8
+#else
+// DDR2 (V3.0)
+#define SDRAM_PHY_A7DDRPHY
+#define SDRAM_PHY_XDR 2
+#define SDRAM_PHY_DATABITS 16
+#define SDRAM_PHY_DFI_DATABITS 32
+#define SDRAM_PHY_PHASES 2
+#define SDRAM_PHY_CL 3
+#define SDRAM_PHY_CWL 2
+#define SDRAM_PHY_CMD_LATENCY 0
+#define SDRAM_PHY_RDPHASE 1
+#define SDRAM_PHY_WRPHASE 0
+#define SDRAM_PHY_READ_LEVELING_CAPABLE
+#define SDRAM_PHY_DQ_DQS_RATIO 8
+#define SDRAM_PHY_MODULES SDRAM_PHY_DATABITS/8
+#define SDRAM_PHY_DELAYS 32
+#define SDRAM_PHY_BITSLIPS 8
+#endif
 
 __attribute__ ((section (".text.primary"))) static void cdelay(int i);
 
@@ -63,6 +89,7 @@ __attribute__ ((section (".text.primary"))) static inline void command_p1(uint32
     sdram_dfii_pi1_command_write(a32, cmd);
     sdram_dfii_pi1_command_issue_write(a32, 1);
 }
+#if (SDRAM_PHY_PHASES > 2)
 __attribute__ ((section (".text.primary"))) static inline void command_p2(uint32_t a32, int cmd)
 {
     sdram_dfii_pi2_command_write(a32, cmd);
@@ -73,6 +100,7 @@ __attribute__ ((section (".text.primary"))) static inline void command_p3(uint32
     sdram_dfii_pi3_command_write(a32, cmd);
     sdram_dfii_pi3_command_issue_write(a32, 1);
 }
+#endif
 
 #define DFII_PIX_DATA_SIZE CSR_SDRAM_DFII_PI0_WRDATA_SIZE
 
@@ -81,8 +109,10 @@ __attribute__ ((section (".text.primary"))) static inline unsigned long sdram_df
     switch (phase) {
         case 0: return CSR_SDRAM_DFII_PI0_WRDATA_ADDR;
 		case 1: return CSR_SDRAM_DFII_PI1_WRDATA_ADDR;
+#if (SDRAM_PHY_PHASES > 2)
 		case 2: return CSR_SDRAM_DFII_PI2_WRDATA_ADDR;
 		case 3: return CSR_SDRAM_DFII_PI3_WRDATA_ADDR;
+#endif
         default: return 0;
         }
 }
@@ -92,8 +122,10 @@ __attribute__ ((section (".text.primary"))) static inline unsigned long sdram_df
     switch (phase) {
         case 0: return CSR_SDRAM_DFII_PI0_RDDATA_ADDR;
 		case 1: return CSR_SDRAM_DFII_PI1_RDDATA_ADDR;
+#if (SDRAM_PHY_PHASES > 2)
 		case 2: return CSR_SDRAM_DFII_PI2_RDDATA_ADDR;
 		case 3: return CSR_SDRAM_DFII_PI3_RDDATA_ADDR;
+#endif
         default: return 0;
         }
 }
@@ -114,6 +146,71 @@ __attribute__ ((section (".text.primary"))) static inline void init_sequence(uin
 	sdram_dfii_pi0_address_write(a32, 0x0);
 	sdram_dfii_pi0_baddress_write(a32, 0);
 	sdram_dfii_control_write(a32, DFII_CONTROL_CKE|DFII_CONTROL_ODT|DFII_CONTROL_RESET_N);
+#ifdef SDRAM_DDR2
+	//DDR2
+	cdelay(20000);
+
+	/* Precharge All */
+	sdram_dfii_pi0_address_write(a32, 0x400);
+	sdram_dfii_pi0_baddress_write(a32, 0);
+	command_p0(a32, DFII_COMMAND_RAS|DFII_COMMAND_WE|DFII_COMMAND_CS);
+
+	/* Load Extended Mode Register 3 */
+	sdram_dfii_pi0_address_write(a32, 0x0);
+	sdram_dfii_pi0_baddress_write(a32, 3);
+	command_p0(a32, DFII_COMMAND_RAS|DFII_COMMAND_CAS|DFII_COMMAND_WE|DFII_COMMAND_CS);
+
+	/* Load Extended Mode Register 2 */
+	sdram_dfii_pi0_address_write(a32, 0x0);
+	sdram_dfii_pi0_baddress_write(a32, 2);
+	command_p0(a32, DFII_COMMAND_RAS|DFII_COMMAND_CAS|DFII_COMMAND_WE|DFII_COMMAND_CS);
+
+	/* Load Extended Mode Register */
+	sdram_dfii_pi0_address_write(a32, 0x0);
+	sdram_dfii_pi0_baddress_write(a32, 1);
+	command_p0(a32, DFII_COMMAND_RAS|DFII_COMMAND_CAS|DFII_COMMAND_WE|DFII_COMMAND_CS);
+
+	/* Load Mode Register / Reset DLL, CL=3, BL=4 */
+	sdram_dfii_pi0_address_write(a32, 0x532);
+	sdram_dfii_pi0_baddress_write(a32, 0);
+	command_p0(a32, DFII_COMMAND_RAS|DFII_COMMAND_CAS|DFII_COMMAND_WE|DFII_COMMAND_CS);
+	cdelay(200);
+
+	/* Precharge All */
+	sdram_dfii_pi0_address_write(a32, 0x400);
+	sdram_dfii_pi0_baddress_write(a32, 0);
+	command_p0(a32, DFII_COMMAND_RAS|DFII_COMMAND_WE|DFII_COMMAND_CS);
+
+	/* Auto Refresh */
+	sdram_dfii_pi0_address_write(a32, 0x0);
+	sdram_dfii_pi0_baddress_write(a32, 0);
+	command_p0(a32, DFII_COMMAND_RAS|DFII_COMMAND_CAS|DFII_COMMAND_CS);
+	cdelay(4);
+
+	/* Auto Refresh */
+	sdram_dfii_pi0_address_write(a32, 0x0);
+	sdram_dfii_pi0_baddress_write(a32, 0);
+	command_p0(a32, DFII_COMMAND_RAS|DFII_COMMAND_CAS|DFII_COMMAND_CS);
+	cdelay(4);
+
+	/* Load Mode Register / CL=3, BL=4 */
+	sdram_dfii_pi0_address_write(a32, 0x432);
+	sdram_dfii_pi0_baddress_write(a32, 0);
+	command_p0(a32, DFII_COMMAND_RAS|DFII_COMMAND_CAS|DFII_COMMAND_WE|DFII_COMMAND_CS);
+	cdelay(200);
+
+	/* Load Extended Mode Register / OCD Default */
+	sdram_dfii_pi0_address_write(a32, 0x380);
+	sdram_dfii_pi0_baddress_write(a32, 1);
+	command_p0(a32, DFII_COMMAND_RAS|DFII_COMMAND_CAS|DFII_COMMAND_WE|DFII_COMMAND_CS);
+
+	/* Load Extended Mode Register / OCD Exit */
+	sdram_dfii_pi0_address_write(a32, 0x0);
+	sdram_dfii_pi0_baddress_write(a32, 1);
+	command_p0(a32, DFII_COMMAND_RAS|DFII_COMMAND_CAS|DFII_COMMAND_WE|DFII_COMMAND_CS);
+	
+#else // !SDRAM_DDR2
+	// DDR3
 	cdelay(10000);
 
 	/* Load Mode Register 2, CWL=5 */
@@ -142,6 +239,7 @@ __attribute__ ((section (".text.primary"))) static inline void init_sequence(uin
 	sdram_dfii_pi0_baddress_write(a32, 0);
 	command_p0(a32, DFII_COMMAND_WE|DFII_COMMAND_CS);
 	cdelay(200);
+#endif // SDRAM_DDR2
 }
 
 #include "nubusfpga_csr_common.h"
@@ -248,12 +346,14 @@ __attribute__ ((section (".text.primary"))) static void
 sdram_dfii_pix_address_write(uint32_t a32, unsigned char phase, unsigned int value)
 {
   switch (phase) {
+#if (SDRAM_PHY_PHASES > 2)
   case 3:
     sdram_dfii_pi3_address_write(a32, value);
     break;
   case 2:
     sdram_dfii_pi2_address_write(a32, value);
     break;
+#endif
   case 1:
     sdram_dfii_pi1_address_write(a32, value);
     break;
@@ -277,12 +377,14 @@ __attribute__ ((section (".text.primary"))) static void
 sdram_dfii_pix_baddress_write(uint32_t a32, unsigned char phase, unsigned int value)
 {
   switch (phase) {
+#if (SDRAM_PHY_PHASES > 2)
   case 3:
     sdram_dfii_pi3_baddress_write(a32, value);
     break;
   case 2:
     sdram_dfii_pi2_baddress_write(a32, value);
     break;
+#endif
   case 1:
     sdram_dfii_pi1_baddress_write(a32, value);
     break;
@@ -306,12 +408,14 @@ __attribute__ ((section (".text.primary"))) static void
 command_px(uint32_t a32, unsigned char phase, unsigned int value)
 {
   switch (phase) {
+#if (SDRAM_PHY_PHASES > 2)
   case 3:
 	  command_p3(a32, value);
     break;
   case 2:
 	  command_p2(a32, value);
     break;
+#endif
   case 1:
 	  command_p1(a32, value);
     break;
@@ -396,14 +500,14 @@ sdram_write_read_check_test_pattern (uint32_t a32, int module, unsigned int seed
   unsigned char tst[1 * 32 / 8];
   unsigned char prs[4][1 * 32 / 8];
   prv = seed;
-  for (p = 0; p < 4; p++) {
+  for (p = 0; p < SDRAM_PHY_PHASES; p++) {
     for (i = 0; i < 1 * 32 / 8; i++) {
       prv = lfsr (32, prv);
       prs[p][i] = prv;
     }
   }
   sdram_activate_test_row(a32);
-  for (p = 0; p < 4; p++)
+  for (p = 0; p < SDRAM_PHY_PHASES; p++)
     csr_wr_buf_uint8(a32, (sdram_dfii_pix_wrdata_addr (p)/* - CSR_SDRAM_BASE*/), prs[p], 1 * 32 / 8); /* cleanme */
   sdram_dfii_piwr_address_write(a32, 0);
   sdram_dfii_piwr_baddress_write(a32, 0);
@@ -415,13 +519,13 @@ sdram_write_read_check_test_pattern (uint32_t a32, int module, unsigned int seed
   cdelay (15);
   sdram_precharge_test_row(a32);
   errors = 0;
-  for (p = 0; p < 4; p++) {
+  for (p = 0; p < SDRAM_PHY_PHASES; p++) {
     csr_rd_buf_uint8(a32, (sdram_dfii_pix_rddata_addr (p)/* - CSR_SDRAM_BASE*/), tst, 1 * 32 / 8); /* cleanme */
     errors +=
-      popcount (prs[p][16 / 8 - 1 - module] ^ tst[16 / 8 - 1 - module]);
+      popcount (prs[p][SDRAM_PHY_MODULES - 1 - module] ^ tst[SDRAM_PHY_MODULES - 1 - module]);
     errors +=
-      popcount (prs[p][2 * 16 / 8 - 1 - module] ^
-		tst[2 * 16 / 8 - 1 - module]);
+      popcount (prs[p][2 * SDRAM_PHY_MODULES - 1 - module] ^
+		tst[2 * SDRAM_PHY_MODULES - 1 - module]);
   }
   return errors;
 }
@@ -481,8 +585,16 @@ sdram_leveling_center_module (uint32_t a32, int module, int show_short, int show
   
   delay_mid = (delay_min + delay_max) / 2 % 32;
   delay_range = (delay_max - delay_min) / 2;
-
-//delay_mid = 25;
+  
+#ifdef DDR_RECORD_RESULTS
+    {
+      //long *rec_addr = (long*)(a32 + 8*1024*1024 - 4); // last word of the FB
+      long *rec_addr =  (long*)(a32 + 0x00902000 + 4092); // end of the accel SRAM 
+      *(rec_addr - SDRAM_PHY_MODULES - module) = delay_mid;
+      //long *rec_addr = (long*)(0x90000000); // superslot on the IIsi
+      //*(rec_addr + SDRAM_PHY_MODULES + module) = delay_mid;
+    }
+#endif
   
   //rst_delay(a32, module);
   sdram_read_leveling_rst_delay(a32, module);
@@ -554,7 +666,7 @@ sdram_read_leveling(uint32_t a32)
   unsigned int score;
   unsigned int best_score;
   int best_bitslip;
-  for (module = 0; module < 16 / 8; module++) {
+  for (module = 0; module < SDRAM_PHY_MODULES; module++) {
     best_score = 0;
     best_bitslip = 0;
     sdram_read_leveling_rst_bitslip(a32, module);
@@ -572,9 +684,15 @@ sdram_read_leveling(uint32_t a32)
 	break;
       sdram_read_leveling_inc_bitslip(a32, module);
     }
-    
-//best_bitslip = 1;
- 
+#ifdef DDR_RECORD_RESULTS
+    {
+      //long *rec_addr = (long*)(a32 + 8*1024*1024 - 4); // last word of the FB
+      long *rec_addr =  (long*)(a32 + 0x00902000 + 4092); // end of the accel SRAM 
+      *(rec_addr - module) = best_bitslip;
+      //long *rec_addr = (long*)(0x90000000); // superslot on the IIsi
+      //*(rec_addr + module) = best_bitslip;
+    }
+#endif
     sdram_read_leveling_rst_bitslip(a32, module);
     for (bitslip = 0; bitslip < best_bitslip; bitslip++)
       sdram_read_leveling_inc_bitslip(a32, module);
@@ -596,7 +714,7 @@ sdram_write_latency_calibration(uint32_t a32)
   int best_bitslip;
   int _sdram_write_leveling_bitslips[16] = {0, 0, 0, 0, 0, 0, 0, 0,
 					    0, 0, 0, 0, 0, 0, 0, 0 };
-  for (module = 0; module < 16 / 8; module++) {
+  for (module = 0; module < SDRAM_PHY_MODULES; module++) {
     best_score = 0;
     best_bitslip = -1;
     for (bitslip = 0; bitslip < 8; bitslip += 2) {
@@ -637,11 +755,13 @@ sdram_leveling(uint32_t a32)
 {
   int module;
   sdram_software_control_on(a32);
-  for (module = 0; module < 16 / 8; module++) {
+  for (module = 0; module < SDRAM_PHY_MODULES; module++) {
     sdram_read_leveling_rst_delay(a32, module);
     sdram_read_leveling_rst_bitslip(a32, module);
   }
+#ifdef SDRAM_PHY_WRITE_LATENCY_CALIBRATION_CAPABLE
   sdram_write_latency_calibration(a32);
+#endif
   sdram_read_leveling(a32);
   sdram_software_control_off(a32);
   return 1;
@@ -649,8 +769,8 @@ sdram_leveling(uint32_t a32)
 int
 sdram_init(uint32_t a32) // // attribute in header file
 {
-  ddrphy_rdphase_write(a32, 2);
-  ddrphy_wrphase_write(a32, 3);
+  ddrphy_rdphase_write(a32, SDRAM_PHY_RDPHASE);
+  ddrphy_wrphase_write(a32, SDRAM_PHY_WRPHASE);
   sdram_software_control_on(a32);
   ddrphy_rst_write(a32, 1);
   cdelay (1000);
@@ -661,3 +781,4 @@ sdram_init(uint32_t a32) // // attribute in header file
   sdram_software_control_off(a32);
   return 1;
 }
+

@@ -11,6 +11,7 @@
 
 #pragma parameter __D0 Primary(__A0)
 UInt32 Primary(SEBlock* seblock) {
+#ifndef DISABLE_GOBLIN
 	UInt32 a32 = 0xF0000000 | ((UInt32)seblock->seSlot << 24);
 	UInt32 a32_l0, a32_l1;
 	UInt32 a32_4p0, a32_4p1;
@@ -37,7 +38,9 @@ UInt32 Primary(SEBlock* seblock) {
 	
 	/* initialize DRAM controller */
 #if !defined(QEMU) && !defined(IISIFPGA)
-	// IIisFPGA should have the hardware initializer, as SDRAM needs to work before the Mac ROM probes it for memory expansion
+	// IIsiFPGA should have the hardware initializer, as SDRAM needs to work before the Mac ROM probes it for memory expansion
+	// to calibrate the HW initialiazer, DDR_RECORD_RESULTS in the SW initlializer can be used to store bitslip/delay in the acceleration SRAM
+	// ... without the acceleration INIT installed (the acceleration stack will trample the recorded results)
 	sdram_init(a32);
 #endif
 	
@@ -152,6 +155,7 @@ UInt32 Primary(SEBlock* seblock) {
 #endif
 
 	seblock->seStatus = 1;
+#endif // DISABLE_GOBLIN
 
 	return 0;
 }

@@ -400,7 +400,7 @@ class GoblinAlt(Module, AutoCSR):
 
         # Video FrameBuffer.
         timings = timings if isinstance(timings, str) else timings[0]
-        base = soc.mem_map.get(name)
+        base = soc.wb_mem_map.get(name)
         print(f"goblin: visible memory at {base:x}")
         hres = int(timings.split("@")[0].split("x")[0])
         vres = int(timings.split("@")[0].split("x")[1])
