@@ -209,7 +209,7 @@ class MacPeriphSoC(SoCCore):
             )
             
         self.avail_sdram = self.bus.regions["main_ram"].size
-        print(f"Avail SDRAM is {self.avail_sdram} ({self.avail_sdram:x})")
+        print(f"Avail SDRAM is {self.avail_sdram} (0x{self.avail_sdram:x})")
 
         if (hwinit):
             from VintageBusFPGA_Common.sdram_init import DDR3FBInit, DDR2Init
