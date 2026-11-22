@@ -11,6 +11,7 @@ from litex.soc.integration.soc_core import *
 from litedram.modules import MT41J128M16
 from litedram.modules import IS43TR8512B
 from litedram.modules import MT47H64M16
+from litedram.modules import W971GG6NB25I
 from litedram.phy import s7ddrphy
 
 from litex.soc.cores.video import VideoS7HDMIPHY
@@ -204,7 +205,7 @@ class MacPeriphSoC(SoCCore):
         elif (version == "V3.0"): # Artix w/ DDR2 board
             self.add_sdram("sdram",
                            phy           = self.ddrphy,
-                           module        = MT47H64M16(self.sys_clk_freq, "1:2"), # close enough ?
+                           module        = W971GG6NB25I(self.sys_clk_freq, "1:2"),
                            l2_cache_size = 0,
             )
             
