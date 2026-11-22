@@ -143,7 +143,7 @@ static inline int litex_clk_get_DO(uint32_t a32, uint8_t clk_reg_addr, uint16_t 
 	litex_clk_set_reg(DRP_ADR, clk_reg_addr);
 	litex_clk_assert_reg(DRP_READ);
 
-	litex_clk_deassert_reg(DRP_READ);
+	/* litex_clk_deassert_reg(DRP_READ); */ /* strobe, not level */
 	ret = litex_clk_wait(a32, DRP_DRDY);
 	if (ret != 0) {
 		return ret;
@@ -161,7 +161,7 @@ static inline int litex_clk_set_DI(uint32_t a32, uint16_t DI_val)
 
 	litex_clk_set_reg(DRP_DAT_W, DI_val);
 	litex_clk_assert_reg(DRP_WRITE);
-	litex_clk_deassert_reg(DRP_WRITE);
+	/* litex_clk_deassert_reg(DRP_WRITE); */ /* strobe, not level */
 	ret = litex_clk_wait(a32, DRP_DRDY);
 	return ret;
 }
