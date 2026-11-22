@@ -489,7 +489,7 @@ OSErr reconfHW(AuxDCEPtr dce, unsigned char mode, unsigned char depth, unsigned 
 #endif
 
 		timeout = 1000;
-		while ((read_reg(dce, GOBOFB_VIDEOCTRL) & 0x2 != 0) && timeout) {
+		while (((read_reg(dce, GOBOFB_VIDEOCTRL) & 0x2) != 0) && timeout) {
 		  /* wait for the reset process to be over */
 		  /* otherwise without a clock it won't finish */
 		  timeout --;
@@ -569,7 +569,7 @@ OSErr reconfHW(AuxDCEPtr dce, unsigned char mode, unsigned char depth, unsigned 
 		write_reg(dce, GOBOFB_VRES_END, __builtin_bswap32(vo + dStore->vres[id]));
 		
 		timeout = 1000;
-		while ((read_reg(dce, GOBOFB_VIDEOCTRL) & 0x2 != 0) && timeout) {
+		while (((read_reg(dce, GOBOFB_VIDEOCTRL) & 0x2) != 0) && timeout) {
 		  /* wait for the reset process to be over */
 		  timeout --;
 		}
@@ -607,7 +607,7 @@ OSErr reconfHW(AuxDCEPtr dce, unsigned char mode, unsigned char depth, unsigned 
 	dStore->curPage = page; /* FIXME: HW */
 
 	short timeout = 1000;
-	while ((read_reg(dce, GOBOFB_VIDEOCTRL) & 0x2 != 0) && timeout) {
+	while (((read_reg(dce, GOBOFB_VIDEOCTRL) & 0x2) != 0) && timeout) {
 	  /* wait for the reset process to be over */
 	  timeout --;
 	}
