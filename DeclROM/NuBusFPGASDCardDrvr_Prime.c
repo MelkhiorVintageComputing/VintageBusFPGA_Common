@@ -1,3 +1,5 @@
+#if defined(ENABLE_SDCARD)
+
 #include "NuBusFPGASDCardDrvr.h"
 
 /* #include <DriverServices.h> */
@@ -109,3 +111,5 @@ OSErr cNuBusFPGASDCardPrime(IOParamPtr pb, /* DCtlPtr */ AuxDCEPtr dce) {
 	return ret;
 }
 
+
+#endif /* ENABLE_SDCARD */

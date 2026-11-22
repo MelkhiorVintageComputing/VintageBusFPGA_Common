@@ -159,6 +159,7 @@ _RAMDskDrvrDir:
 /* _RAMDskEnd020Drvr: */ /* supplied by linker script */
 
 /* ////////////////////////////////////////////// SDCARD */
+	.ifdef ENABLE_SDCARD /* --defsym from the Makefile when -DENABLE_SDCARD is in FEATURES */
 	.section .text.begin
 	ALIGN 2
 _sRsrc_SDCard:	
@@ -193,6 +194,7 @@ _SDCardDrvrDir:
     .long        _SDCardEnd020Drvr-.   /*  physical block size */
     .include     "NuBusFPGASDCardDrvr.s"             /*   driver code */
 /* _SDCardEnd020Drvr: */ /* supplied by linker script */
+	.endif /* ENABLE_SDCARD */
 
 	
 /* ////////////////////////////////////////////// HDMI AUDIO */

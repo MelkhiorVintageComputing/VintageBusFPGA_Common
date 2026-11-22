@@ -1,8 +1,9 @@
-AS=/home/dolbeau/Retro68/build/toolchain/bin/m68k-apple-macos-as
-CC=/home/dolbeau/Retro68/build/toolchain/bin/m68k-apple-macos-gcc
-LD=/home/dolbeau/Retro68/build/toolchain/bin/m68k-apple-macos-ld
-STRIP=/home/dolbeau/Retro68/build/toolchain/bin/m68k-apple-macos-strip
-OBJCOPY=/home/dolbeau/Retro68/build/toolchain/bin/m68k-apple-macos-objcopy
+RETRO68?=/home/dolbeau/Retro68/build/toolchain
+AS=${RETRO68}/bin/m68k-apple-macos-as
+CC=${RETRO68}/bin/m68k-apple-macos-gcc
+LD=${RETRO68}/bin/m68k-apple-macos-ld
+STRIP=${RETRO68}/bin/m68k-apple-macos-strip
+OBJCOPY=${RETRO68}/bin/m68k-apple-macos-objcopy
 HOSTCC=gcc
 HOSTCFLAGS=-O2
 
@@ -26,6 +27,8 @@ include ../../decl_rom_config.mak
 
 CFLAGS+=${FEATURES}
 HOSTCFLAGS+=${FEATURES}
+# the assembler doesn't see -D: mirror the optional features it needs as symbols
+ASFEATURES=$(if $(findstring -DENABLE_SDCARD,${FEATURES}),--defsym ENABLE_SDCARD=1)
 
 NS816DECLROMDIR=./ns816-declrom
 NUBUS_CHECKSUM=${NS816DECLROMDIR}/nubus_checksum
@@ -62,7 +65,7 @@ $(NUBUS_CHECKSUM): ${NS816DECLROMDIR}/nubus_checksum.cc ${NS816DECLROMDIR}/nubus
 vid_decl_rom.o: vid_decl_rom.s NuBusFPGADrvr.s NuBusFPGARAMDskDrvr.s ${APPLEINCS} DepVideo.inc ${GEN_ASM} goblin_param.inc
 	rm -f res.inc
 	echo -e "HRES=${HRES}\nVRES=${VRES}\n" | tee res.inc
-	${AS} ${ARCHFLAGS} -I${NS816DECLROMDIR} $< -o $@ -a > vid_decl_rom.l
+	${AS} ${ARCHFLAGS} ${ASFEATURES} -I${NS816DECLROMDIR} $< -o $@ -a > vid_decl_rom.l
 
 myrle.o: myrle.c
 	${CC} ${ARCHFLAGS} ${CFLAGS} $< -c -o $@ -DSKIP_MAIN

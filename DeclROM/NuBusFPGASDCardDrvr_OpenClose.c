@@ -1,3 +1,5 @@
+#if defined(ENABLE_SDCARD)
+
 #include "NuBusFPGASDCardDrvr.h"
 
 #include <Disks.h>
@@ -876,3 +878,5 @@ int sdcard_write(uint32_t sc, struct SDCardContext *ctx, uint32_t block, uint32_
 	
   return 0;
 }
+
+#endif /* ENABLE_SDCARD */

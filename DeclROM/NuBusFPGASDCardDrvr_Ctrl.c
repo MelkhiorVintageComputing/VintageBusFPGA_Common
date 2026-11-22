@@ -1,3 +1,5 @@
+#if defined(ENABLE_SDCARD)
+
 #include "NuBusFPGASDCardDrvr.h"
 
 #if 0
@@ -57,3 +59,5 @@ OSErr cNuBusFPGASDCardCtl(CntrlParamPtr pb, /* DCtlPtr */ AuxDCEPtr dce)
 		IODone((DCtlPtr)dce, ret);
 	return ret;
 }
+
+#endif /* ENABLE_SDCARD */
