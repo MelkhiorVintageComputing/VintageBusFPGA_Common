@@ -406,7 +406,7 @@ class Goblin(Module, AutoCSR):
 
         # Video FrameBuffer.
         timings = timings if isinstance(timings, str) else timings[0]
-        base = soc.mem_map.get(name)
+        base = soc.wb_mem_map.get(name)
         print(f"goblin: visible memory at {base:x}")
         hres = int(timings.split("@")[0].split("x")[0])
         vres = int(timings.split("@")[0].split("x")[1])
@@ -484,6 +484,16 @@ class Goblin(Module, AutoCSR):
         else:
             low_byte = slice(24, 32)
             low_bit = slice(24, 25)
+
+        self.comb += [
+            upd_cmap_fifo_din.color.eq(bt_cmap_state),
+            upd_cmap_fifo_din.address.eq(bt_addr),
+            upd_cmap_fifo_din.data.eq(bus.dat_w[low_byte]),
+
+            upd_omap_fifo_din.color.eq(bt_cmap_state),
+            upd_omap_fifo_din.address.eq(bt_addr[0:2]),
+            upd_omap_fifo_din.data.eq(bus.dat_w[low_byte]),
+        ]
             
         self.submodules.wishbone_fsm = wishbone_fsm = FSM(reset_state = "Reset")
         wishbone_fsm.act("Reset",
@@ -511,22 +521,16 @@ class Goblin(Module, AutoCSR):
                                 ],
                                 # gobofb_lut
                                 0x6: [ upd_cmap_fifo.we.eq(1),
-                                           upd_cmap_fifo_din.color.eq(bt_cmap_state),
-                                           upd_cmap_fifo_din.address.eq(bt_addr),
-                                           upd_cmap_fifo_din.data.eq(bus.dat_w[low_byte]),
-                                           Case(bt_cmap_state, {
-                                               0: [ NextValue(bt_cmap_state, 1), ],
-                                               1: [ NextValue(bt_cmap_state, 2), ],
-                                               2: [ NextValue(bt_cmap_state, 0), NextValue(bt_addr, (bt_addr+1) & 0xFF), ],
-                                               "default":  NextValue(bt_cmap_state, 0),
-                                           }),
+                                       Case(bt_cmap_state, {
+                                           0: [ NextValue(bt_cmap_state, 1), ],
+                                           1: [ NextValue(bt_cmap_state, 2), ],
+                                           2: [ NextValue(bt_cmap_state, 0), NextValue(bt_addr, (bt_addr+1) & 0xFF), ],
+                                           "default":  NextValue(bt_cmap_state, 0),
+                                       }),
                                 ],
                                 # 0x7: debug in SW
                                 # cursor lut
                                 0x8: [ upd_omap_fifo.we.eq(1),
-                                       upd_omap_fifo_din.color.eq(bt_cmap_state),
-                                       upd_omap_fifo_din.address.eq(bt_addr[0:2]),
-                                       upd_omap_fifo_din.data.eq(bus.dat_w[low_byte]),
                                        Case(bt_cmap_state, {
                                            0: [ NextValue(bt_cmap_state, 1), ],
                                            1: [ NextValue(bt_cmap_state, 2), ],
