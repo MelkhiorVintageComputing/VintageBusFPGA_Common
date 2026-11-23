@@ -28,6 +28,11 @@ struct SDCardContext {
   uint32_t write_retries;
 };
 
+/* set in ioMix (SlotDevParam ioSMix in Retro68, offset 28, for the driver's use) by the
+   sBootRecord's first _HOpen (vid_decl_rom.s), so Open knows it's called early in the
+   ROM startup */
+#define SDCARD_BOOT_MAGIC 0x53446274 /* 'SDbt' */
+
 /* driver-specific Status/Control calls, for diagnostics (see SDTest) */
 #define kSDCardInfo     200 /* Status: csParam <- struct SDCardInfo */
 #define kSDCardSetClock 200 /* Control: csParam = long, SD clock divider (power of 2, 2-256) */

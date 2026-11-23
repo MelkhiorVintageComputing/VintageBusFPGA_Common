@@ -166,9 +166,116 @@ _sRsrc_SDCard:
 	OSLstEntry  sRsrcType,_SDCardType      /*  video type descriptor */
     OSLstEntry  sRsrcName,_SDCardName      /*  offset to driver name string */
     OSLstEntry  sRsrcDrvrDir,_SDCardDrvrDir /* offset to driver directory */
+	.ifndef SDCARD_NO_BOOTREC /* --defsym SDCARD_NO_BOOTREC=1 to build without */
+	OSLstEntry  sRsrcBootRec,_SDCardBootRec /* boot record: startup from the SD card */
+	.endif
 	DatLstEntry  sRsrcFlags,6    /* force 32 bits mode & open */
-    DatLstEntry sRsrcHWDevId,2           /*  hardware device ID */
+    DatLstEntry sRsrcHWDevId,3           /*  hardware device ID (unique on the card: RAM disk is 2) */
     .long EndOfList               /*  end of list */
+
+/* sBootRecord (DCD3 p.168, PDF 209; IM V-422/423). Called with A0 = seBlock:
+   - seBootState = 0, early in the ROM startup, only when PRAM's default startup device
+     names this slot/sResource: open the driver (its Open initializes the card and adds
+     the drive), return the driver refNum in seRefNum and seStatus = 0 (negative = no
+     driver, the normal startup then happens); the ROM then reads the boot blocks from
+     that drive;
+   - seBootState = 1, after the system patches: "must open any remaining drivers for
+     devices on the card". Observed on a Quadra: with a boot record, the SD driver is not
+     opened by the usual fOpenAtStart pass any more (even when starting from the internal
+     drive), so open it here (harmless if already open: Open isn't called again).
+   Modelled on the NS 8/16 ROM (ns816-declrom/ns816_quadra.s). Holding Option at startup
+   skips the card in the first call. The block must be self-contained (copied to RAM). */
+/* local offsets (the .inc files define several structs with the same field names) */
+sdb_ioCompletion = 12
+sdb_ioNamePtr = 18
+sdb_ioRefNum = 24
+sdb_ioPermssn = 27
+sdb_ioMix = 28 /* SlotDevParam: for the driver's use */
+sdb_ioFlags = 32 /* SlotDevParam ioFlags, ioSlot (34), ioID (35) */
+sdb_ioSlot = 34
+sdb_ioID = 35
+sdb_pbSize = 50 /* HParamBlockRec size */
+sdb_qHead = 2 /* QHdr */
+sdb_qLink = 0 /* DrvQEl */
+sdb_dQDrive = 6
+sdb_dQRefNum = 8
+sdb_seSlot = 0
+sdb_seRsrcID = 1
+sdb_seStatus = 2
+sdb_seRefNum = 20
+sdb_seBootState = 22
+SDCARD_BOOT_MAGIC = 0x53446274 /* 'SDbt', see NuBusFPGASDCardDrvr.h */
+
+	ALIGN 2
+_SDCardBootRec:	/* SExecBlock */
+	.long _SDCardBootRecEnd-_SDCardBootRec /* block size */
+	.byte 2 /* revision level */
+	.byte cpu68020 /* CPU type */
+	.short 0 /* reserved */
+	.long _SDCardBootCode-. /* code offset */
+_SDCardBootCode:
+	moveml %d1-%fp,%sp@-
+	moveal %a0,%a2 /* a2 = seBlock */
+	subaw #sdb_pbSize,%sp
+	moveal %sp,%a3 /* a3 = param block */
+	lea %pc@(_SDCardBootDrvrName),%a1
+	moveb %a2@(sdb_seRsrcID),%d2
+	tstb %a2@(sdb_seBootState)
+	bnew 5f
+	/* first call: open the SD driver, it adds the drive the ROM will start from */
+	btst #2,KeyMap+7 /* Option key down: don't start from the card */
+	bnew 8f
+	movel #SDCARD_BOOT_MAGIC,%d3 /* tells the driver's Open it's the boot open */
+	bsrw 20f
+	bnew 8f
+	/* find the drive the driver added */
+	moveal DrvQHdr+sdb_qHead,%a0
+1:	cmpal #0,%a0
+	beqw 8f /* no drive: the card wasn't usable */
+	cmpw %a0@(sdb_dQRefNum),%d1
+	beqs 2f
+	moveal %a0@(sdb_qLink),%a0
+	bras 1b
+2:	/* disk-inserted event, as the NS 8/16 does, so the volume gets mounted even if the
+	   ROM ends up starting from another drive (harmless otherwise) */
+	tstw EvtBufCnt
+	bles 3f
+	moveq #0,%d0
+	movew %a0@(sdb_dQDrive),%d0
+	moveaw #7,%a0 /* diskEvt */
+	_PostEvent
+3:	moveb %d1,%a2@(sdb_seRefNum) /* refNums of unit table entries fit in a signed byte */
+	clrw %a2@(sdb_seStatus)
+	bras 9f
+5:	/* second call: open the SD driver (normal open, it mounts the volume); errors ignored */
+	moveq #0,%d3
+	bsrw 20f
+	clrw %a2@(sdb_seStatus)
+	bras 9f
+8:	movew #openErr,%a2@(sdb_seStatus)
+9:	addaw #sdb_pbSize,%sp
+	moveml %sp@+,%d1-%fp
+	rts
+/* _HOpen driver: a1 = name, d2.b = sResource ID, d3 = ioMix value, a2 = seBlock,
+   a3 = param block; returns d0 = result (flags set), d1 = refNum */
+20:	moveal %a3,%a0
+	clrl %a0@(sdb_ioCompletion)
+	movel %a1,%a0@(sdb_ioNamePtr)
+	moveb #fsRdWrPerm,%a0@(sdb_ioPermssn)
+	movel %d3,%a0@(sdb_ioMix)
+	clrw %a0@(sdb_ioFlags)
+	moveb %a2@(sdb_seSlot),%a0@(sdb_ioSlot)
+	moveb %d2,%a0@(sdb_ioID)
+	_HOpen
+	movew %a0@(sdb_ioRefNum),%d1
+	tstw %d0
+	rts
+_SDCardBootDrvrName:
+	.byte _SDCardBootDrvrNameEnd-.-1 /* pascal string, must match the driver header name */
+	.ascii ".NuBusFPGASDCard_Drvr"
+_SDCardBootDrvrNameEnd:
+	ALIGN 2
+_SDCardBootRecEnd:
 
 	ALIGN 2
 _SDCardType:	

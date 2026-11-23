@@ -117,8 +117,11 @@ OSErr cNuBusFPGASDCardOpen(IOParamPtr pb, /* DCtlPtr */ AuxDCEPtr dce)
 
 		/* nothing else mounts it at startup: mount it now, as the RAM disk does.
 		   Errors (e.g. blank/unformatted card) are ignored, so the driver stays open
-		   and the volume can still be initialized or mounted later with a disk tool. */
-		{
+		   and the volume can still be initialized or mounted later with a disk tool.
+		   Not when opened by the sBootRecord's first call: that's early in the ROM
+		   startup, the Start Manager mounts the startup volume itself (and the boot
+		   record posts a disk-inserted event for the other case). */
+		if (((SlotDevParamPtr)pb)->ioSMix != (Ptr)SDCARD_BOOT_MAGIC) {
 			ParamBlockRec pbr;
 			pbr.volumeParam.ioCompletion = NULL;
 			pbr.volumeParam.ioVRefNum = dsptr->dQDrive;
