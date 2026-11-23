@@ -165,6 +165,7 @@ class MacPeriphSoC(SoCCore):
                                    module = {
                                        "V2.0" : S25FL256S(Codes.READ_1_1_1), # checkme: flash and opcode
                                        "V3.0" : W25Q128JV(Codes.READ_1_1_1),#  checkme:  opcode
+                                       "V3.1" : W25Q128JV(Codes.READ_1_1_1),#  idem V3.0
                                    }[version],
                                    region_size = 0x00008000, # 32 KiB, 
                                    region_offset = (sector * 65536), # CHECKME
