@@ -47,6 +47,15 @@ OSErr cNuBusFPGASDCardCtl(CntrlParamPtr pb, /* DCtlPtr */ AuxDCEPtr dce)
 			case kFormat: /* nothing to format */
 				ret = noErr;
 				break;
+			case 21: /* media icon + mask + "Where:" string, IM V-470 */
+			case 22: /* physical drive icon + mask, IM V-470 */
+				{
+					uint32_t p = (uint32_t)ctx->icon;
+					pb->csParam[0] = p >> 16;
+					pb->csParam[1] = p & 0xFFFF;
+				}
+				ret = noErr;
+				break;
 			case kDriveInfo: /* IM V-470 */
 				/* unspecified drive type (1), external (bit 8), fixed (bit 10) */
 				pb->csParam[0] = 0x0000;

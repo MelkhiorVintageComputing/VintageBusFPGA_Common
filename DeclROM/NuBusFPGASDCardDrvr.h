@@ -26,6 +26,9 @@ struct SDCardContext {
   uint16_t divider;         /* SD clock = sys_clk (100 MHz) / divider */
   uint32_t read_retries;
   uint32_t write_retries;
+  /* returned by Control csCode 21/22 (IM V-470): 32x32 icon, mask, then the Pascal
+     string shown after "Where:" in Get Info (21 only); must stay valid after the call */
+  unsigned char icon[256 + 32];
 };
 
 /* set in ioMix (SlotDevParam ioSMix in Retro68, offset 28, for the driver's use) by the
