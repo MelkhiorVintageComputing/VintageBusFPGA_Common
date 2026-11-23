@@ -10,8 +10,13 @@
 /* not sure how to do "parameter" without output ? */
 #pragma parameter __D0 AddDrive(__D0, __A0)
 __attribute__ ((section (".text.dskdriver"))) static inline int dupAddDrive(unsigned long num, DrvQElPtr qEl) {
-	asm volatile(".word 0xA04E" : : "d" (num), "a" (qEl));
-	return num; // should cost nothing, num is already in D0
+	/* the trap takes its arguments in D0 and A0 specifically: plain "d"/"a" constraints
+	   let GCC pick any data/address register (it used A6 for qEl, so the trap got a
+	   stale A0 and added a bogus drive queue element) */
+	register unsigned long d0 asm("d0") = num;
+	register DrvQElPtr a0 asm("a0") = qEl;
+	asm volatile(".word 0xA04E" : "+d" (d0), "+a" (a0) : : "cc", "memory");
+	return d0;
 }
 
 #include <ROMDefs.h>

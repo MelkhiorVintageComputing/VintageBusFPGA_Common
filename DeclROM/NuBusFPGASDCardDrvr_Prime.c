@@ -11,11 +11,15 @@ inline void waitSome(unsigned long bound) {
   }
 }
 
+/* NuBusFPGA only supports 32-bits mode, so no MMU mode switching here */
 __attribute__ ((section (".text.sddriver"))) static OSErr doSync(IOParamPtr pb, /* DCtlPtr */ AuxDCEPtr dce, struct SDCardContext *ctx) {
 	OSErr ret = noErr;
-
-	unsigned char* superslot = (unsigned char*)(((unsigned long)ctx->slot) << 28ul);
 	unsigned long abs_offset = 0;
+	unsigned long blk, cnt;
+	int is_read;
+
+	pb->ioActCount = 0;
+
 	/* IOParamPtr: Devices 1-53 (p73) */
 	/* **** WHERE **** */
 	switch(pb->ioPosMode & 0x000F) { // ignore rdVerify
@@ -28,60 +32,45 @@ __attribute__ ((section (".text.sddriver"))) static OSErr doSync(IOParamPtr pb, 
 	case fsFromMark:
 		abs_offset = dce->dCtlPosition + pb->ioPosOffset;
 		break;
-	default:
-		break;
+	default: /* e.g. fsFromLEOF, meaningless for a disk */
+		return paramErr;
 	}
+
 	/* **** WHAT **** */
 	/* Devices 1-33 (p53) */
 	if ((pb->ioTrap & 0x00FF) == aRdCmd) {
-	  if(!(pb->ioPosMode & 0x40)) { // rdVerify, let's ignore it for now
-	    if (abs_offset & 0x01FF) {
-	      ret = paramErr;
-	      *(uint32_t*)(dce->dCtlDevBase | 0x00902000 | 0x804) = abs_offset;
-	      *(uint32_t*)(dce->dCtlDevBase | 0x00902000 | 0x808) = pb->ioReqCount;
-	      goto done;
-	    }
-	    if (pb->ioReqCount & 0x01FF) {
-	      ret = paramErr;
-	      *(uint32_t*)(dce->dCtlDevBase | 0x00902000 | 0x804) = abs_offset;
-	      *(uint32_t*)(dce->dCtlDevBase | 0x00902000 | 0x808) = pb->ioReqCount;
-	      goto done;
-	    }
-	    if (sdcard_read(dce->dCtlDevBase, ctx, abs_offset >> 9, pb->ioReqCount >> 9, pb->ioBuffer)) {
-	      ret = readErr;
-	      goto done;
-	    }
-	  }
-	  pb->ioActCount = pb->ioReqCount;
-	  dce->dCtlPosition = abs_offset + pb->ioReqCount;
-	  pb->ioPosOffset = dce->dCtlPosition;
+		is_read = 1;
 	} else if ((pb->ioTrap & 0x00FF) == aWrCmd) {
-	  if (abs_offset & 0x01FF) {
-	    ret = paramErr;
-	    *(uint32_t*)(dce->dCtlDevBase | 0x00902000 | 0x804) = abs_offset;
-	    *(uint32_t*)(dce->dCtlDevBase | 0x00902000 | 0x808) = pb->ioReqCount;
-	    goto done;
-	  }
-	  if (pb->ioReqCount & 0x01FF) {
-	    ret = paramErr;
-	    *(uint32_t*)(dce->dCtlDevBase | 0x00902000 | 0x804) = abs_offset;
-	    *(uint32_t*)(dce->dCtlDevBase | 0x00902000 | 0x808) = pb->ioReqCount;
-	    goto done;
-	  }
-	  if (sdcard_write(dce->dCtlDevBase, ctx, abs_offset >> 9, pb->ioReqCount >> 9, pb->ioBuffer)) {
-	    ret = writErr;
-	    goto done;
-	  }
-	  pb->ioActCount = pb->ioReqCount;
-	  dce->dCtlPosition = abs_offset + pb->ioReqCount;
-	  pb->ioPosOffset = dce->dCtlPosition;
+		is_read = 0;
 	} else {
-	  ret = paramErr;
-	  goto done;
+		return paramErr;
 	}
+
+	if ((abs_offset & 0x01FF) || (pb->ioReqCount & 0x01FF))
+		return paramErr;
+	blk = abs_offset >> 9;
+	cnt = pb->ioReqCount >> 9;
+	if ((blk > ctx->size_blk) || (cnt > (ctx->size_blk - blk)))
+		return paramErr;
+
+	if (is_read) {
+		if (!(pb->ioPosMode & rdVerify)) { // rdVerify, let's ignore it for now
+			if (sdcard_read(ctx, blk, cnt, (uint8_t*)pb->ioBuffer)) {
+				ret = readErr;
+				goto done;
+			}
+		}
+	} else {
+		if (sdcard_write(ctx, blk, cnt, (uint8_t*)pb->ioBuffer)) {
+			ret = writErr;
+			goto done;
+		}
+	}
+	pb->ioActCount = pb->ioReqCount;
+	dce->dCtlPosition = abs_offset + pb->ioReqCount;
+	pb->ioPosOffset = dce->dCtlPosition;
+
  done:
-	if (ret != noErr)
-	  *(uint32_t*)(dce->dCtlDevBase | 0x00902000 | 0x800) = ret | (((pb->ioTrap & 0x00FF) == aRdCmd) ? 0x11000000 : 0x22000000);
 	return ret;
 }
 
@@ -89,25 +78,19 @@ __attribute__ ((section (".text.sddriver"))) static OSErr doSync(IOParamPtr pb, 
 #pragma parameter __D0 cNuBusFPGASDCardPrime(__A0, __A1)
 OSErr cNuBusFPGASDCardPrime(IOParamPtr pb, /* DCtlPtr */ AuxDCEPtr dce) {
 	OSErr ret = noErr;
-	struct SDCardContext *ctx;
-	unsigned long abs_offset = 0;
+	struct SDCardContext *ctx = NULL;
 
-	ctx = *(struct SDCardContext**)dce->dCtlStorage;
-	
+	if (dce->dCtlStorage)
+		ctx = *(struct SDCardContext**)dce->dCtlStorage;
+
 	if (ctx) {
-	  ret = doSync(pb, dce, ctx);
-	  if (!(pb->ioTrap & (1<<noQueueBit))) {
-	    IODone((DCtlPtr)dce, ret);
-	  }
-	  goto done;
+		ret = doSync(pb, dce, ctx);
 	} else {
-	  ret = offLinErr;  /* r/w requested for an off-line drive */
-	  if (!(pb->ioTrap & (1<<noQueueBit)))
-	    IODone((DCtlPtr)dce, ret);
-	  goto done;
+		ret = offLinErr;  /* r/w requested for an off-line drive */
 	}
 
- done:
+	if (!(pb->ioTrap & (1<<noQueueBit)))
+		IODone((DCtlPtr)dce, ret);
 	return ret;
 }
 
