@@ -158,7 +158,7 @@ class MacPeriphSoC(SoCCore):
                     # if the signal is not defined, we're on a 2.13 and don't need it
                     self.comb += [ ]
                     # ignore
-            elif ((version == "V2.0") or (version == "V3.0")):
+            elif ((version == "V2.0") or (version in ("V3.0", "V3.1"))):
                 self.add_spi_flash(name="config_spiflash",
                                    mode="1x", # can we go to 4x and how ?
                                    clk_freq = self.sys_clk_freq/4, # CHECKME; PHY freq ?
@@ -179,7 +179,7 @@ class MacPeriphSoC(SoCCore):
                                                        memtype        = "DDR3",
                                                        nphases        = 4,
                                                        sys_clk_freq   = self.sys_clk_freq)
-        elif (version == "V3.0"):
+        elif (version in ("V3.0", "V3.1")):
             self.submodules.ddrphy = s7ddrphy.A7DDRPHY(self.platform.request("ddram"),
                                                        memtype        = "DDR2",
                                                        nphases        = 2,
@@ -202,7 +202,7 @@ class MacPeriphSoC(SoCCore):
                            module        = IS43TR8512B(self.sys_clk_freq, "1:4"), # TBD
                            l2_cache_size = 0,
             )
-        elif (version == "V3.0"): # Artix w/ DDR2 board
+        elif (version in ("V3.0", "V3.1")): # Artix w/ DDR2 board
             self.add_sdram("sdram",
                            phy           = self.ddrphy,
                            module        = W971GG6NB25I(self.sys_clk_freq, "1:2"),
@@ -219,7 +219,7 @@ class MacPeriphSoC(SoCCore):
                                                         bitslip = [1,1], delay = [25,25], # CHECKME / FIXME: parameters
                                                         sdram_dfii_base = sdram_dfii_base, ddrphy_base = ddrphy_base)
                 self.bus.add_master(name="DDR3Init", master=self.sdram_init.bus)
-            elif (version == "V3.0"): #Artix7 + DDR2
+            elif (version in ("V3.0", "V3.1")): #Artix7 + DDR2
                 self.submodules.sdram_init = DDR2Init(sys_clk_freq = self.sys_clk_freq,
                                                       bitslip = [3,3], delay = [15,14],
                                                       sdram_dfii_base = sdram_dfii_base, ddrphy_base = ddrphy_base)
