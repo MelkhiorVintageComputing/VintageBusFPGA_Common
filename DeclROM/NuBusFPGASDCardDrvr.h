@@ -62,7 +62,7 @@ struct SDCardInfo {
 #elif defined(IISIFPGA)
 #include "../../iisifpga_csr_sdblock2mem.h"
 #include "../../iisifpga_csr_sdcore.h"
-//#include "../../iisifpga_csr_sdirq.h"
+#include "../../iisifpga_csr_sdirq.h" /* sdirq_enable is used as a write fence */
 #include "../../iisifpga_csr_sdmem2block.h"
 #include "../../iisifpga_csr_sdphy.h"
 //#include "../../iisifpga_csr_exchange_with_sd.h"
