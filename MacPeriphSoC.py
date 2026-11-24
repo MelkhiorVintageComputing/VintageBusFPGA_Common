@@ -106,6 +106,7 @@ class MacPeriphSoC(SoCCore):
             "goblin_accel" :     0xF0901000, # accel for goblin (regs)
             "goblin_accel_ram" : 0xF0902000, # accel for goblin (scratch ram)
             "stat"             : 0xF0903000, # stat
+            "sd_buf"           : 0xF0904000, # SD card DMA staging buffer (16 KiB, only with SD card)
             "goblin_accel_rom" : 0xF0910000, # accel for goblin (rom)
             "goblin_audio_ram" : 0xF0920000, # audio for goblin (RAM buffers)
             "csr" :              0xF0A00000, # CSR
