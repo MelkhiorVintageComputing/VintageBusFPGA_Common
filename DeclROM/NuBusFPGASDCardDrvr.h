@@ -17,7 +17,6 @@ struct SDCardContext {
   uint16_t rca;             /* relative card address */
   char slot;
   unsigned char hc;         /* 1 for SDHC/SDXC (block addressing), 0 for SDSC (byte addressing) */
-  unsigned char fence;      /* sequence number for sdcard_fence() */
   unsigned char dead;       /* SD core stuck (no hardware timeout on some states), device unusable */
   unsigned char wr_broken;  /* write DMA FIFO may hold stale data, writes refused */
   unsigned char guard;      /* NuBus reads to wait before a command, covers 8 SD clocks */
@@ -62,7 +61,7 @@ struct SDCardInfo {
 #elif defined(IISIFPGA)
 #include "../../iisifpga_csr_sdblock2mem.h"
 #include "../../iisifpga_csr_sdcore.h"
-#include "../../iisifpga_csr_sdirq.h" /* sdirq_enable is used as a write fence */
+#include "../../iisifpga_csr_sdirq.h"
 #include "../../iisifpga_csr_sdmem2block.h"
 #include "../../iisifpga_csr_sdphy.h"
 //#include "../../iisifpga_csr_exchange_with_sd.h"
@@ -119,7 +118,6 @@ struct SDCardInfo {
 #define SD_TICKS_CMD          120 /* 2 s */
 #define SD_TICKS_PER_BLK_SHIFT  5 /* (n << 5) ticks, ~0.5 s per block for data commands */
 #define SD_TICKS_TRAN          60 /* 1 s for the card to finish programming (SDHC max 250 ms, SDXC 500 ms) */
-#define SD_POLL_FENCE     100000ul  /* iterations, >= 20 ms */
 #define SD_POLL_DMA      1000000ul  /* iterations, >= 200 ms, DMA after the SD core finished */
 
 /* After a response without data, the PHY keeps clocking 8 cycles with CMD driven high

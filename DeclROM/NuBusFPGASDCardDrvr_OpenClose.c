@@ -254,26 +254,9 @@ void delay(int d) {
 /* SDCard command helpers                                                */
 /*-----------------------------------------------------------------------*/
 
-/* NuBus writes are posted: the board acks them immediately and queues them in a FIFO,
-   while reads use a separate path that doesn't wait for that FIFO to drain. A read
-   can therefore return a value from before the preceding writes took effect (e.g.
-   the 'done' bit of the previous command right after writing cmd_send).
-   Writes stay in order, so write a new value in an unused register (sdirq_enable,
-   the SD irq isn't wired to anything) and read it back until it shows up: all
-   earlier writes have then been performed. */
-__attribute__ ((section (".text.sddriver"))) static void sdcard_fence(struct SDCardContext *ctx) {
-	uint32_t v;
-	unsigned long i;
-	ctx->fence = (ctx->fence & 0xF) + 1;
-	if (ctx->fence > 0xF)
-		ctx->fence = 1;
-	v = ctx->fence;
-	sdirq_enable_write(ctx->sc, v);
-	for (i = 0 ; i < SD_POLL_FENCE ; i++) {
-		if ((sdirq_enable_read(ctx->sc) & 0xF) == v)
-			break;
-	}
-}
+/* NuBus writes are posted (acked immediately and queued), but reads go through the same
+   request FIFO on the board, so a read always sees the effect of all earlier writes:
+   no explicit fence needed (e.g. reading cmd_event right after writing cmd_send). */
 
 /* TickCount() is a trap, so only check it every 256 iterations */
 #define SD_TICKS_EXPIRED(i, start, max) ((((i) & 0xFF) == 0) && ((TickCount() - (start)) > (max)))
@@ -312,7 +295,6 @@ void sdcard_set_divider(struct SDCardContext *ctx, uint32_t divider) {
 	ctx->divider = divider;
 	/* 8 SD clocks = 80 ns * divider; at >= 200 ns per NuBus read, divider/2 + 2 reads covers it */
 	ctx->guard = (divider >> 1) + 2;
-	sdcard_fence(ctx);
 }
 
 /*-----------------------------------------------------------------------*/
@@ -330,7 +312,6 @@ __attribute__ ((section (".text.sddriver"))) static int sdcard_send_command(stru
 	sdcore_cmd_argument_write(sc, arg);
 	sdcore_cmd_command_write(sc, (cmd << 8) | rsp);
 	sdcore_cmd_send_write(sc, 1);
-	sdcard_fence(ctx);
 	return sdcard_wait_cmd_done(ctx, maxticks);
 }
 
@@ -391,7 +372,7 @@ __attribute__ ((section (".text.sddriver"))) static int sdcard_switch(struct SDC
 
 	ctx->hs_status = 0xFFFF;
 	sdblock2mem_dma_enable_write(sc, 0);
-	sdcard_fence(ctx);
+	(void)sdblock2mem_dma_enable_read(sc); /* ordered after the write: the DMA is disabled from now on */
 	delay(50);
 	sdblock2mem_dma_base_write(sc, SDCARD_BUF_DMA_ADDR);
 	sdblock2mem_dma_length_write(sc, 64);
@@ -481,11 +462,9 @@ static int sdcard_init(struct SDCardContext* ctx) {
 	int v2 = 1;
 	int res;
 
-	/* known state: no DMA, fence register at 0 */
-	sdirq_enable_write(sc, 0);
+	/* known state: no DMA */
 	sdblock2mem_dma_enable_write(sc, 0);
 	sdmem2block_dma_enable_write(sc, 0);
-	ctx->fence = 0;
 
 	/* Set SD clk freq to Initialization frequency, until the card is identified */
 	sdcard_set_divider(ctx, 256); /* 390 kHz */
@@ -494,7 +473,6 @@ static int sdcard_init(struct SDCardContext* ctx) {
 	for (timeout=1000; timeout>0; timeout--) {
 		/* Set SDCard in SPI Mode (generate 80 dummy clocks) */
 		sdphy_init_initialize_write(sc, 1);
-		sdcard_fence(ctx);
 		busy_wait(1);
 
 		/* Set SDCard in Idle state */
@@ -663,7 +641,7 @@ __attribute__ ((section (".text.sddriver"))) static int sdcard_read_once(struct 
 
 	/* with enable == 0 the DMA drops whatever was left in its FIFO; give it time to drain */
 	sdblock2mem_dma_enable_write(sc, 0);
-	sdcard_fence(ctx);
+	(void)sdblock2mem_dma_enable_read(sc); /* ordered after the write: the DMA is disabled from now on */
 	delay(50);
 
 	sdblock2mem_dma_base_write(sc, SDCARD_BUF_DMA_ADDR);
@@ -761,7 +739,7 @@ __attribute__ ((section (".text.sddriver"))) static int sdcard_app_send_num_wr_b
 	int res;
 
 	sdblock2mem_dma_enable_write(sc, 0);
-	sdcard_fence(ctx);
+	(void)sdblock2mem_dma_enable_read(sc); /* ordered after the write: the DMA is disabled from now on */
 	delay(50);
 	sdblock2mem_dma_base_write(sc, SDCARD_BUF_DMA_ADDR);
 	sdblock2mem_dma_length_write(sc, 4);
